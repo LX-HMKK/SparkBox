@@ -20,7 +20,7 @@ Sparkbox_ws/
 
 ## 功能说明
 
- - 采集图像并去畸变（tasks/img_input/take_img.py）
+- 采集图像并去畸变&仿射变换
 - 模型交互功能（待开发）
 - UI输出显示（待开发）
 
