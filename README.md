@@ -8,9 +8,8 @@ Sparkbox_ws/
 ├── README.md                    
 ├── .gitignore                  
 ├── asset/                       # 资源文件目录
-│   └──camera.yaml              # 相机标定数据（内参矩阵、畸变系数）
-├── img/                         # 图像保存目录（按时间戳命名）
-│   └── YYYYMMDD_HHMMSS_mmm.png  # 去畸变后的相机图像
+│   └──camera.yaml              # 相机标定数据
+├── img/                   
 ├── src/                         # 主函数目录
 └── tasks/                       # 任务模块目录
     ├── img_input/               # 图像采集模块
