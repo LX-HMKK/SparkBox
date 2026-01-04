@@ -33,20 +33,20 @@ cap.set(4, 720)  # Height
 cap.set(cv2.CAP_PROP_FPS, 30)  # FPS
 
 # 设置更多相机参数
-cap.set(cv2.CAP_PROP_BRIGHTNESS, 50)   # 亮度 0-100
-cap.set(cv2.CAP_PROP_CONTRAST, 32)     # 对比度 0-100
-cap.set(cv2.CAP_PROP_SATURATION, 64)   # 饱和度 0-100
-cap.set(cv2.CAP_PROP_HUE, 50)          # 色调 0-100
-cap.set(cv2.CAP_PROP_GAIN, 35)         # 增益 0-100
-cap.set(cv2.CAP_PROP_EXPOSURE, -5)     # 曝光值 -11(最暗) 到 1(最亮)
-cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)  # 关闭自动曝光 (0.25 = 手动模式, 0.75 = 自动模式)
+# cap.set(cv2.CAP_PROP_BRIGHTNESS, 50)   # 亮度 0-100
+# cap.set(cv2.CAP_PROP_CONTRAST, 32)     # 对比度 0-100
+# cap.set(cv2.CAP_PROP_SATURATION, 64)   # 饱和度 0-100
+# cap.set(cv2.CAP_PROP_HUE, 50)          # 色调 0-100
+# cap.set(cv2.CAP_PROP_GAIN, 35)         # 增益 0-100
+# cap.set(cv2.CAP_PROP_EXPOSURE, -5)     # 曝光值 -11(最暗) 到 1(最亮)
+# cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)  # 关闭自动曝光 (0.25 = 手动模式, 0.75 = 自动模式)
 
 # 如果摄像头支持，启用自动对焦
 # cap.set(cv2.CAP_PROP_AUTOFOCUS, 1)  # 启用自动对焦
 # cap.set(cv2.CAP_PROP_FOCUS, 0)      # 手动设置对焦 (0-255)
 
 # 设置图像质量
-cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)    # 设置缓冲区大小为1帧，减少延迟
+# cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)    # 设置缓冲区大小为1帧，减少延迟
 
 # 显示实际的相机参数
 print(f"实际分辨率: {cap.get(cv2.CAP_PROP_FRAME_WIDTH)}x{cap.get(cv2.CAP_PROP_FRAME_HEIGHT)}")
