@@ -254,7 +254,7 @@ def main():
     workspace_root = Path(__file__).parent.parent.parent
     
     # 使用pose模型（改为运行输出的最佳模型）
-    model_path = workspace_root / "runs" / "pose" / "canvas_corners" / "weights" / "best.pt"
+    model_path = workspace_root / "asset" / "best.pt"
     
     # 如果没有trained model，使用预训练模型
     if not model_path.exists():
