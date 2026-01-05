@@ -4,24 +4,24 @@ import os
 from openai import OpenAI
 
 class CreativeDemoAgent:
-    """ÃæÏòÖĞĞ¡Ñ§´´¿Í½ÌÓıµÄ AI ×÷Æ·Éè¼ÆÖúÊÖ"""
+    """é¢å‘ä¸­å°å­¦åˆ›å®¢æ•™è‚²çš„ AI ä½œå“è®¾è®¡åŠ©æ‰‹"""
 
     def __init__(self, api_key: str) -> None:
         self.client = OpenAI(
             api_key=api_key,
-            base_url="https://api.yixia.ai/v1",  # È¥µôÎ²²¿¿Õ¸ñ
+            base_url="https://api.yixia.ai/v1",  # å»æ‰å°¾éƒ¨ç©ºæ ¼
             timeout=60,
             max_retries=3
         )
         self.model = "gemini-3-pro"
 
     # --------------------------------------------------
-    # ¹«ÓĞ½Ó¿Ú
+    # å…¬æœ‰æ¥å£
     # --------------------------------------------------
     def generate(self, user_idea: str) -> dict:
-        """¸ù¾İÓÃ»§Ò»¾ä»°´´Òâ£¬·µ»ØÍêÕû´´¿Í·½°¸£¨º¬Ô¤ÀÀÍ¼£©"""
+        """æ ¹æ®ç”¨æˆ·ä¸€å¥è¯åˆ›æ„ï¼Œè¿”å›å®Œæ•´åˆ›å®¢æ–¹æ¡ˆï¼ˆå«é¢„è§ˆå›¾ï¼‰"""
         prompt = self._build_prompt(user_idea)
-        # ÓÃ chat.completions ½Ó¿Ú
+        # ç”¨ chat.completions æ¥å£
         completion = self.client.chat.completions.create(
             model=self.model,
             messages=[{"role": "user", "content": prompt}]
@@ -30,20 +30,20 @@ class CreativeDemoAgent:
         return json.loads(json_str)
 
     # --------------------------------------------------
-    # ÄÚ²¿¹¤¾ß
+    # å†…éƒ¨å·¥å…·
     # --------------------------------------------------
     def _build_prompt(self, user_idea: str) -> str:
         return f"""
-ÄãÊÇÒ»¸ö¡¾ÃæÏòÖĞĞ¡Ñ§ÉúµÄ AI ´´¿Í×÷Æ·Éè¼ÆÖúÊÖ¡¿¡£
+ä½ æ˜¯ä¸€ä¸ªã€é¢å‘ä¸­å°å­¦ç”Ÿçš„ AI åˆ›å®¢ä½œå“è®¾è®¡åŠ©æ‰‹ã€‘ã€‚
 
-ÓÃ»§»áÃèÊöÒ»¸öÏëÖÆ×÷µÄ×÷Æ·»ò´´×÷³¡¾°£¬
-ÇëÄãÔÚ¡¾Ò»´Î»Ø¸´ÖĞ¡¿Íê³ÉÒÔÏÂÈÎÎñ£º
+ç”¨æˆ·ä¼šæè¿°ä¸€ä¸ªæƒ³åˆ¶ä½œçš„ä½œå“æˆ–åˆ›ä½œåœºæ™¯ï¼Œ
+è¯·ä½ åœ¨ã€ä¸€æ¬¡å›å¤ä¸­ã€‘å®Œæˆä»¥ä¸‹ä»»åŠ¡ï¼š
 
-1. ¸ø³öÒ»Ì×¡¾ÇåÎú¡¢¿É½ÌÑ§¡¢¿ÉÂäµØ¡¿µÄ×÷Æ·ÖÆ×÷·½°¸
-2. Í¬Ê±Éú³ÉÒ»ÕÅ¡¾×÷Æ·ÊµÎïÔ¤ÀÀÍ¼¡¿£¬°ïÖúÓÃ»§Ö±¹ÛÀí½â³ÉÆ·Ñù×Ó
+1. ç»™å‡ºä¸€å¥—ã€æ¸…æ™°ã€å¯æ•™å­¦ã€å¯è½åœ°ã€‘çš„ä½œå“åˆ¶ä½œæ–¹æ¡ˆ
+2. åŒæ—¶ç”Ÿæˆä¸€å¼ ã€ä½œå“å®ç‰©é¢„è§ˆå›¾ã€‘ï¼Œå¸®åŠ©ç”¨æˆ·ç›´è§‚ç†è§£æˆå“æ ·å­
 
-ÇëÑÏ¸ñ°´ÕÕÒÔÏÂ JSON ¸ñÊ½Êä³ö£¬²»ÒªÊä³öÈÎºÎ¶àÓà½âÊÍ£º
-£¨preview_image ×Ö¶ÎÖĞÇëÊ¹ÓÃ markdown image ĞÎÊ½£©
+è¯·ä¸¥æ ¼æŒ‰ç…§ä»¥ä¸‹ JSON æ ¼å¼è¾“å‡ºï¼Œä¸è¦è¾“å‡ºä»»ä½•å¤šä½™è§£é‡Šï¼š
+ï¼ˆpreview_image å­—æ®µä¸­è¯·ä½¿ç”¨ markdown image å½¢å¼ï¼‰
 
 ```json
 {{
@@ -56,7 +56,7 @@ class CreativeDemoAgent:
   "learning_outcomes": [],
   "preview_image": "![preview](IMAGE_URL_OR_BASE64)"
 }}
-ÓÃ»§ĞèÇó£º
+ç”¨æˆ·éœ€æ±‚ï¼š
 {user_idea}
 """
 
@@ -64,19 +64,19 @@ class CreativeDemoAgent:
     def _extract_json(text: str) -> str:
         match = re.search(r"\{[\s\S]*\}", text)
         if not match:
-            raise ValueError("7Ã4 Î´ÄÜ´ÓÄ£ĞÍ»Ø¸´ÖĞÌáÈ¡ÓĞĞ§ JSON£¬Ô­Ê¼»Ø¸´£º\n" + text)
+            raise ValueError("âŒ æœªèƒ½ä»æ¨¡å‹å›å¤ä¸­æå–æœ‰æ•ˆ JSONï¼ŒåŸå§‹å›å¤ï¼š\n" + text)
         return match.group()
 
 
 # --------------------------------------------------
-# ½Å±¾Èë¿Ú
+# è„šæœ¬å…¥å£
 # --------------------------------------------------
 if __name__ == "__main__":
     API_KEY = "sk-Ye8XGQ9aZDxJwpTIaKc4rUGPS2Yma5G8lTsSIwO985DUescy"
-    #ÊµÀı»¯´úÀí
+    #å®ä¾‹åŒ–ä»£ç†
     agent = CreativeDemoAgent(api_key=API_KEY)
-    #ÓÃ»§ĞèÇó
-    user_input = "ÎÒÏëÖÆ×÷Ò»¸öÖÇÄÜĞ¡³µ£¬ÓÃÀ´¸ø10-12ËêµÄÑ§ÉúÑ§Ï°±à³ÌºÍ´«¸ĞÆ÷"
+    #ç”¨æˆ·éœ€æ±‚
+    user_input = "æˆ‘æƒ³åˆ¶ä½œä¸€ä¸ªæ™ºèƒ½å°è½¦ï¼Œç”¨æ¥ç»™10-12å²çš„å­¦ç”Ÿå­¦ä¹ ç¼–ç¨‹å’Œä¼ æ„Ÿå™¨"
     result = agent.generate(user_input)
-    print("======Éú³É½á¹û ======")
+    print("======ç”Ÿæˆç»“æœ ======")
     print(json.dumps(result, ensure_ascii=False, indent=2))
