@@ -48,6 +48,7 @@ class CreativeDemoAgent:
 ```json
 {{
   "project_name": "",
+  "target_user": "",
   "difficulty": "",
   "core_idea": "",
   "materials": [],
@@ -71,13 +72,11 @@ class CreativeDemoAgent:
 # 脚本入口
 # --------------------------------------------------
 if __name__ == "__main__":
-
     API_KEY = "sk-Ye8XGQ9aZDxJwpTIaKc4rUGPS2Yma5G8lTsSIwO985DUescy"
     #实例化代理
     agent = CreativeDemoAgent(api_key=API_KEY)
-    #用户需求（一句话）
-    user_input = "我想制作一个智能小车，用来给中学生学习编程和传感器"
-    
+    #用户需求
+    user_input = "我想制作一个智能小车，用来给10-12岁的学生学习编程和传感器"
     result = agent.generate(user_input)
-    print("====== 生成结果 ======")
+    print("======生成结果 ======")
     print(json.dumps(result, ensure_ascii=False, indent=2))
