@@ -14,7 +14,7 @@ Sparkbox_ws/
 ├── src/                         # 主函数目录
 └── tasks/                       # 任务模块目录
     ├── img_input/               # 图像采集模块
-    ├── talk/                    # 模型交互模块（待开发）
+    ├── talk/                    # 模型交互模块（待修改）
     └── ui_output/               # UI输出模块（待开发）
 ```
 
