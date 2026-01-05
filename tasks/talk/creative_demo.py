@@ -9,7 +9,7 @@ class CreativeDemoAgent:
     def __init__(self, api_key: str) -> None:
         self.client = OpenAI(
             api_key=api_key,
-            base_url="https://api.yixia.ai/v1",  # 去掉尾部空格！
+            base_url="https://api.yixia.ai/v1",  # 去掉尾部空格
             timeout=60,
             max_retries=3
         )
@@ -21,7 +21,7 @@ class CreativeDemoAgent:
     def generate(self, user_idea: str) -> dict:
         """根据用户一句话创意，返回完整创客方案（含预览图）"""
         prompt = self._build_prompt(user_idea)
-        # ④ 用 chat.completions 接口
+        # 用 chat.completions 接口
         completion = self.client.chat.completions.create(
             model=self.model,
             messages=[{"role": "user", "content": prompt}]
@@ -48,7 +48,6 @@ class CreativeDemoAgent:
 ```json
 {{
   "project_name": "",
-  "target_user": "",
   "difficulty": "",
   "core_idea": "",
   "materials": [],
@@ -72,13 +71,13 @@ class CreativeDemoAgent:
 # 脚本入口
 # --------------------------------------------------
 if __name__ == "__main__":
-    # ===== 1. 填入你的 Gemini API Key =====
+
     API_KEY = "sk-Ye8XGQ9aZDxJwpTIaKc4rUGPS2Yma5G8lTsSIwO985DUescy"
-    # ===== 2. 实例化代理 =====
+    #实例化代理
     agent = CreativeDemoAgent(api_key=API_KEY)
-    # ===== 3. 用户一句话需求 =====
-    user_input = "我想制作一个智能小车，用来给10-12岁的学生学习编程和传感器"
-    # ===== 4. 生成并打印 =====
+    #用户需求（一句话）
+    user_input = "我想制作一个智能小车，用来给中学生学习编程和传感器"
+    
     result = agent.generate(user_input)
-    print("====== AI 生成结果 ======")
+    print("====== 生成结果 ======")
     print(json.dumps(result, ensure_ascii=False, indent=2))
