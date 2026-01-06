@@ -1,0 +1,7 @@
+has_visible: true
+classes:
+  canvas:
+    - point_tl
+    - point_tr
+    - point_br
+    - point_bl
