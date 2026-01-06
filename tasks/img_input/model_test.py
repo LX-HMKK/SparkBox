@@ -1,5 +1,5 @@
 """
-相机实时Pose识别程序
+相机实时Pose识别程序（GPU加速版）
 使用YOLO11 pose模型进行实时矩形4角点检测
 """
 
@@ -8,20 +8,33 @@ import numpy as np
 import yaml
 from pathlib import Path
 from ultralytics import YOLO
+import torch  # 新增：导入torch用于GPU管理
 
 
 class CanvasPoseDetection:
-    def __init__(self, model_path, camera_yaml_path):
+    def __init__(self, model_path, camera_yaml_path, class_yaml_path=None, device=None):
         """
-        初始化Pose检测系统
+        初始化Pose检测系统（支持GPU加速）
         
         Args:
             model_path: YOLO pose模型文件路径
             camera_yaml_path: 相机标定参数文件路径
+            class_yaml_path: 类别配置文件路径（可选）
+            device: 运行设备 (None=自动选择, 'cpu', 'cuda', 'cuda:0'等)
         """
-        # 加载模型
+        # 自动选择设备（优先GPU）
+        if device is None:
+            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        else:
+            self.device = device
+        
+        print(f"使用设备: {self.device}")
+        if self.device.startswith('cuda'):
+            print(f"GPU名称: {torch.cuda.get_device_name(0)}")
+        
+        # 加载模型（指定设备）
         print(f"正在加载Pose模型: {model_path}")
-        self.model = YOLO(model_path)
+        self.model = YOLO(model_path).to(self.device)
         
         # 加载相机标定参数
         print(f"正在加载相机参数: {camera_yaml_path}")
@@ -33,32 +46,58 @@ class CanvasPoseDetection:
         self.image_width = camera_params['image_width']
         self.image_height = camera_params['image_height']
         
+        # 加载类别配置文件（如果有）
+        self.class_config = None
+        if class_yaml_path and Path(class_yaml_path).exists():
+            with open(class_yaml_path, 'r', encoding='utf-8') as f:
+                self.class_config = yaml.safe_load(f)
+            print(f"已加载类别配置: {self.class_config}")
+        else:
+            print("未找到类别配置文件，使用默认配置")
+        
         # 存储角点信息
         self.corners_list = []
+        
+        # 可选：启用OpenCV CUDA加速（如果需要）
+        self.use_cv2_cuda = False
+        if self.device.startswith('cuda') and cv2.cuda.getCudaEnabledDeviceCount() > 0:
+            self.use_cv2_cuda = True
+            print("OpenCV CUDA加速已启用")
+            # 预创建畸变矫正的映射表（GPU版）
+            self.map1, self.map2 = cv2.cuda.convertMaps(
+                cv2.initUndistortRectifyMap(self.camera_matrix, self.dist_coeffs, None,
+                                           self.camera_matrix, (self.image_width, self.image_height),
+                                           cv2.CV_16SC2),
+                dstmap1type=cv2.CV_16SC2,
+                dstmap2type=cv2.CV_16UC1
+            )
         
         print("初始化完成！")
     
     def process_frame(self, frame, confidence_threshold=0.25, undistort=True, draw=True):
         """
-        处理单帧图像，进行分割识别并提取角点
-        
-        Args:
-            frame: 输入的图像帧
-            confidence_threshold: 置信度阈值
-            undistort: 是否进行畸变矫正
-            draw: 是否绘制可视化结果
-        
-        Returns:
-            annotated_frame: 绘制了结果的帧（如果draw=True）
-            corners_list: 角点列表，每个元素是一个对象的4个角点
-            results: YOLO原始检测结果
+        处理单帧图像（GPU加速版），进行分割识别并提取角点
         """
-        # 畸变矫正（可选）
+        # 畸变矫正（GPU加速版）
         if undistort:
-            frame = cv2.undistort(frame, self.camera_matrix, self.dist_coeffs)
+            if self.use_cv2_cuda:
+                # OpenCV CUDA畸变矫正
+                gpu_frame = cv2.cuda_GpuMat()
+                gpu_frame.upload(frame)
+                frame = cv2.cuda.remap(gpu_frame, self.map1, self.map2, cv2.INTER_LINEAR).download()
+            else:
+                # CPU版畸变矫正（备用）
+                frame = cv2.undistort(frame, self.camera_matrix, self.dist_coeffs)
         
-        # 进行推理
-        results = self.model(frame, conf=confidence_threshold, verbose=False)
+        # 进行推理（GPU加速，禁用自动CPU拷贝）
+        results = self.model(
+            frame, 
+            conf=confidence_threshold, 
+            verbose=False,
+            device=self.device,  # 显式指定设备
+            stream=False,        # 非流式推理（实时场景）
+            augment=False        # 关闭数据增强提升速度
+        )
         
         # 绘制结果并提取角点
         if draw:
@@ -74,40 +113,59 @@ class CanvasPoseDetection:
     
     def extract_corners_from_result(self, result):
         """
-        从YOLO Pose结果中提取所有对象的4个角点
-        
-        Args:
-            result: YOLO检测结果
-        
-        Returns:
-            corners_list: 角点列表，每个元素是一个对象的4个角点坐标
+        从YOLO Pose结果中提取角点（优化GPU->CPU数据传输）
         """
         corners_list = []
         
-        if result.keypoints is not None and len(result.keypoints.xy) > 0:
-            keypoints_array = result.keypoints.xy  # 形状: (num_objects, num_keypoints, 2)
+        if result.keypoints is not None and len(result.keypoints) > 0:
+            # 批量处理关键点，减少CPU/GPU拷贝次数
+            all_keypoints = result.keypoints.xy  # 直接在GPU上获取（如果可用）
+            # 只拷贝一次到CPU（而非逐次拷贝）
+            all_keypoints_cpu = all_keypoints.cpu().numpy() if self.device.startswith('cuda') else all_keypoints.numpy()
             
-            for keypoints in keypoints_array:
-                # keypoints是4个点的坐标 [(x1,y1), (x2,y2), (x3,y3), (x4,y4)]
-                corners = [(int(pt[0]), int(pt[1])) for pt in keypoints]
-                corners_list.append(corners)
+            if self.class_config and 'classes' in self.class_config:
+                canvas_points = self.class_config['classes']['canvas']
+                
+                for kpts in all_keypoints_cpu:
+                    corners = []
+                    for i in range(kpts.shape[0]):
+                        x_val, y_val = kpts[i][0], kpts[i][1]
+                        if np.isfinite(x_val) and np.isfinite(y_val):
+                            x = int(np.round(x_val))
+                            y = int(np.round(y_val))
+                            corners.append((x, y))
+                        else:
+                            corners.append((0, 0))
+                    corners_list.append(corners)
+            else:
+                # 默认处理逻辑
+                for kpts in all_keypoints_cpu:
+                    corners = []
+                    for i in range(kpts.shape[0]):
+                        x_val, y_val = kpts[i][0], kpts[i][1]
+                        if np.isfinite(x_val) and np.isfinite(y_val):
+                            x = int(np.round(x_val))
+                            y = int(np.round(y_val))
+                            corners.append((x, y))
+                        else:
+                            corners.append((0, 0))
+                    corners_list.append(corners)
         
         return corners_list
     
     def run(self, camera_id=1, confidence_threshold=0.25):
         """
-        运行实时识别（集成相机调用的便捷方法）
-        
-        Args:
-            camera_id: 相机ID，默认为1
-            confidence_threshold: 置信度阈值
+        运行实时识别（GPU加速版）
         """
         # 打开相机
         cap = cv2.VideoCapture(camera_id)
         
-        # 设置相机分辨率
+        # 设置相机参数（优化实时性能）
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.image_width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.image_height)
+        cap.set(cv2.CAP_PROP_FPS, 30)
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 减少缓冲区，降低延迟
+        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))  # 加速相机读取
         
         if not cap.isOpened():
             print("错误: 无法打开相机")
@@ -117,6 +175,10 @@ class CanvasPoseDetection:
         
         # 创建窗口
         cv2.namedWindow('Canvas Pose Detection', cv2.WINDOW_NORMAL)
+        
+        # 帧率计算（更准确）
+        fps_counter = 0
+        fps_start_time = cv2.getTickCount()
         
         while True:
             # 读取帧
@@ -130,9 +192,17 @@ class CanvasPoseDetection:
                 frame, confidence_threshold=confidence_threshold
             )
             
-            # 显示FPS
-            fps_text = f"FPS: {cap.get(cv2.CAP_PROP_FPS):.1f}"
-            cv2.putText(annotated_frame, fps_text, (10, 30), 
+            # 计算并显示FPS
+            fps_counter += 1
+            if fps_counter >= 10:  # 每10帧更新一次FPS
+                current_time = cv2.getTickCount()
+                fps = fps_counter / ((current_time - fps_start_time) / cv2.getTickFrequency())
+                fps_start_time = current_time
+                fps_counter = 0
+            else:
+                fps = cap.get(cv2.CAP_PROP_FPS)
+            
+            cv2.putText(annotated_frame, f"FPS: {fps:.1f} (GPU: {self.device})", (10, 30), 
                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             
             # 显示检测数量
@@ -158,123 +228,145 @@ class CanvasPoseDetection:
         # 释放资源
         cap.release()
         cv2.destroyAllWindows()
+        
+        # 清理GPU缓存（可选）
+        if self.device.startswith('cuda'):
+            torch.cuda.empty_cache()
     
     def draw_results(self, frame, result):
         """
-        在帧上绘制Pose检测结果（4个角点）
-        
-        Args:
-            frame: 原始帧
-            result: YOLO检测结果
-        
-        Returns:
-            绘制了结果的帧，角点列表
+        在帧上绘制Pose检测结果（优化GPU数据处理）
         """
         annotated = frame.copy()
         corners_list = []
         
-        # 定义4个角点的颜色和标签
-        corner_colors = [
-            (0, 255, 0),    # 角点0: 绿色
-            (255, 0, 0),    # 角点1: 蓝色
-            (0, 0, 255),    # 角点2: 红色
-            (255, 255, 0)   # 角点3: 青色
-        ]
-        corner_labels = ['TL', 'TR', 'BR', 'BL']  # 左上、右上、右下、左下
+        # 角点标签和颜色配置
+        if self.class_config and 'classes' in self.class_config:
+            canvas_points = self.class_config['classes']['canvas']
+            corner_labels = [pt.split('_')[1].upper() for pt in canvas_points]
+        else:
+            corner_labels = ['TL', 'TR', 'BR', 'BL']
         
-        # 如果有检测结果
-        if result.keypoints is not None and len(result.keypoints.xy) > 0:
-            keypoints_array = result.keypoints.xy  # 形状: (num_objects, 4, 2)
-            boxes = result.boxes.data.cpu().numpy()
+        corner_colors = [(0, 255, 0), (255, 0, 0), (0, 0, 255), (255, 255, 0)]
+        
+        # 处理检测结果
+        if result.keypoints is not None and len(result.keypoints) > 0:
+            # 批量拷贝关键点到CPU（减少拷贝次数）
+            keypoints_cpu = result.keypoints.xy.cpu().numpy() if self.device.startswith('cuda') else result.keypoints.xy.numpy()
+            boxes_cpu = result.boxes.data.cpu().numpy() if (result.boxes is not None and self.device.startswith('cuda')) else (result.boxes.data.numpy() if result.boxes is not None else [])
             
-            # 为每个检测对象绘制关键点
-            for obj_idx, (keypoints, box) in enumerate(zip(keypoints_array, boxes)):
-                # 获取置信度和类别
-                conf = box[4]
-                cls = int(box[5])
+            # 遍历每个检测对象
+            for obj_idx, kpts in enumerate(keypoints_cpu):
+                # 处理边界框
+                box_idx = obj_idx if obj_idx < len(boxes_cpu) else 0
+                if len(boxes_cpu) > 0 and box_idx < len(boxes_cpu):
+                    box = boxes_cpu[box_idx]
+                    conf = box[4]
+                    cls = int(box[5])
+                else:
+                    conf = 0.9
+                    cls = 0
                 
-                # 转换为numpy数组以便处理
-                kpts = keypoints.cpu().numpy() if hasattr(keypoints, 'cpu') else keypoints
-                
-                # 转换关键点为整数坐标
-                corners = [(int(pt[0]), int(pt[1])) for pt in kpts]
+                # 提取角点坐标
+                corners = []
+                for i in range(kpts.shape[0]):
+                    x_val, y_val = kpts[i][0], kpts[i][1]
+                    if np.isfinite(x_val) and np.isfinite(y_val):
+                        x = int(np.round(x_val))
+                        y = int(np.round(y_val))
+                        corners.append((x, y))
+                    else:
+                        corners.append((0, 0))
                 corners_list.append(corners)
                 
                 # 绘制边界框
-                x1, y1, x2, y2 = map(int, box[:4])
-                color = (0, 255, 0)
-                cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
-                
-                # 绘制标签
-                label = f"Class {cls}: {conf:.2f}"
-                (w, h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 1)
-                cv2.rectangle(annotated, (x1, y1 - 25), (x1 + w, y1), color, -1)
-                cv2.putText(annotated, label, (x1, y1 - 5),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-                
-                # 绘制4个角点
-                for corner_idx, corner in enumerate(corners):
-                    # 绘制圆点
-                    cv2.circle(annotated, corner, 8, corner_colors[corner_idx], -1)
-                    cv2.circle(annotated, corner, 10, (255, 255, 255), 2)
+                if len(boxes_cpu) > 0 and box_idx < len(boxes_cpu):
+                    x1, y1, x2, y2 = map(int, box[:4])
+                    color = (0, 255, 0)
+                    cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
                     
-                    # 绘制角点标签
-                    cv2.putText(annotated, corner_labels[corner_idx], 
-                               (corner[0] + 15, corner[1] - 5),
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, corner_colors[corner_idx], 2)
+                    # 绘制标签
+                    label = f"Class {cls}: {conf:.2f}"
+                    (w, h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 1)
+                    cv2.rectangle(annotated, (x1, y1 - 25), (x1 + w, y1), color, -1)
+                    cv2.putText(annotated, label, (x1, y1 - 5),
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
                 
-                # 绘制矩形边框（连接4个角点）
+                # 绘制角点
+                for corner_idx, corner in enumerate(corners):
+                    if corner_idx < len(corner_colors):
+                        cv2.circle(annotated, corner, 8, corner_colors[corner_idx], -1)
+                        cv2.circle(annotated, corner, 10, (255, 255, 255), 2)
+                        
+                        if corner_idx < len(corner_labels):
+                            cv2.putText(annotated, corner_labels[corner_idx], 
+                                       (corner[0] + 15, corner[1] - 5),
+                                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, corner_colors[corner_idx], 2)
+                
+                # 绘制矩形边框
                 if len(corners) == 4:
-                    pts = np.array(corners, np.int32)
-                    pts = pts.reshape((-1, 1, 2))
+                    pts = np.array(corners, np.int32).reshape((-1, 1, 2))
                     cv2.polylines(annotated, [pts], True, (0, 255, 255), 2)
                 
-                # 打印角点坐标
-                corner_names = ["左上", "右上", "右下", "左下"]
+                # 打印角点信息（可选）
+                if self.class_config and 'classes' in self.class_config:
+                    point_names = self.class_config['classes']['canvas']
+                else:
+                    point_names = ["左上", "右上", "右下", "左下"]
+                
                 print(f"\n对象 {obj_idx+1} (Class {cls}, Conf: {conf:.2f}) 的4个角点:")
                 for idx, corner in enumerate(corners):
-                    corner_name = corner_names[idx] if idx < 4 else f"角点{idx}"
-                    print(f"  {corner_name} ({idx}): {corner}")
+                    point_name = point_names[idx] if idx < len(point_names) else f"角点{idx}"
+                    print(f"  {point_name} ({idx}): {corner}")
         
         return annotated, corners_list
     
     def get_corners(self):
-        """
-        获取最新的角点列表
-        
-        Returns:
-            角点列表，每个元素是一个对象的角点坐标列表
-        """
+        """获取最新的角点列表"""
         return self.corners_list
 
 
 def main():
-    """主函数"""
+    """主函数（GPU加速版）"""
     # 设置路径
     workspace_root = Path(__file__).parent.parent.parent
     
-    # 使用pose模型（改为运行输出的最佳模型）
+    # 模型路径
     model_path = workspace_root / "asset" / "best.pt"
-    
-    # 如果没有trained model，使用预训练模型
     if not model_path.exists():
         print(f"警告: 训练模型不存在: {model_path}")
         print("将使用YOLO11n-pose预训练模型进行演示")
         model_path = "yolo11n-pose.pt"
     
+    # 配置文件路径
     camera_yaml_path = workspace_root / "asset" / "camera.yaml"
+    class_yaml_path = workspace_root / "asset" / "class.yaml"
     
-    # 检查相机参数文件是否存在
+    # 检查相机参数文件
     if not camera_yaml_path.exists():
         print(f"错误: 相机参数文件不存在: {camera_yaml_path}")
         return
     
-    # 创建Pose检测系统
-    pose_system = CanvasPoseDetection(str(model_path), str(camera_yaml_path))
+    # 创建Pose检测系统（自动选择GPU/CPU）
+    pose_system = CanvasPoseDetection(
+        str(model_path), 
+        str(camera_yaml_path), 
+        str(class_yaml_path),
+        device=None  # None=自动选择，也可以手动指定：'cuda:0'/'cpu'
+    )
     
     # 运行实时检测
     pose_system.run(camera_id=1, confidence_threshold=0.25)
 
 
 if __name__ == "__main__":
+    # 验证CUDA可用性
+    print("="*50)
+    print(f"PyTorch CUDA可用: {torch.cuda.is_available()}")
+    print(f"OpenCV CUDA可用: {cv2.cuda.getCudaEnabledDeviceCount() > 0}")
+    if torch.cuda.is_available():
+        print(f"GPU: {torch.cuda.get_device_name(0)}")
+        print(f"CUDA版本: {torch.version.cuda}")
+    print("="*50)
+    
     main()

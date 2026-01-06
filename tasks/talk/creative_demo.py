@@ -4,6 +4,9 @@ import random
 import urllib.parse
 from openai import OpenAI
 
+
+# TODO(LX_HMKK 2026/1/6): 把前景描述放在配置文件夹asset中，读取yaml文件
+
 class CreativeDemoAgent:
     """面向中小学创客教育的 AI 作品设计助手"""
     def __init__(self, api_key: str) -> None:
