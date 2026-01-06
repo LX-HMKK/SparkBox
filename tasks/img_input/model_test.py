@@ -12,7 +12,7 @@ import torch  # 新增：导入torch用于GPU管理
 
 
 class CanvasPoseDetection:
-    def __init__(self, model_path, camera_yaml_path, class_yaml_path=None, device=None):
+    def __init__(self, model_path, camera_yaml_path, class_yaml_path=None, device=None, target_size_mm=140):
         """
         初始化Pose检测系统（支持GPU加速）
         
@@ -21,6 +21,7 @@ class CanvasPoseDetection:
             camera_yaml_path: 相机标定参数文件路径
             class_yaml_path: 类别配置文件路径（可选）
             device: 运行设备 (None=自动选择, 'cpu', 'cuda', 'cuda:0'等)
+            target_size_mm: 目标正方形边长（毫米）
         """
         # 自动选择设备（优先GPU）
         if device is None:
@@ -46,6 +47,12 @@ class CanvasPoseDetection:
         self.image_width = camera_params['image_width']
         self.image_height = camera_params['image_height']
         
+        # 设置目标尺寸（像素）
+        self.target_size_mm = target_size_mm
+        # 假设每毫米对应的像素数为一个估算值，实际应用中可能需要更精确的计算
+        # 这里我们先设定一个目标尺寸（像素），后续会根据相机参数进行调整
+        self.target_size_px = 400  # 可以根据实际需要调整
+        
         # 加载类别配置文件（如果有）
         self.class_config = None
         if class_yaml_path and Path(class_yaml_path).exists():
@@ -57,6 +64,7 @@ class CanvasPoseDetection:
         
         # 存储角点信息
         self.corners_list = []
+        self.current_corners = []  # 存储当前检测到的角点
         
         # 可选：启用OpenCV CUDA加速（如果需要）
         self.use_cv2_cuda = False
@@ -108,9 +116,64 @@ class CanvasPoseDetection:
         
         # 更新角点列表
         self.corners_list = corners_list
+        # 更新当前角点
+        if corners_list:
+            self.current_corners = corners_list[0]  # 使用检测到的第一个对象的角点作为当前角点
+        else:
+            self.current_corners = []
         
         return annotated_frame, corners_list, results
-    
+
+    def get_current_corners(self):
+        """
+        获取当前检测到的四个角点坐标
+        返回当前检测到的矩形的四个角点坐标，按顺序为：左上、右上、右下、左下
+        如果没有检测到任何对象，则返回空列表
+        """
+        return self.current_corners
+
+    def get_corners(self):
+        """获取最新的角点列表（所有检测到的对象）"""
+        return self.corners_list
+
+    def apply_perspective_transform(self, frame, target_size=None):
+        """
+        对输入帧应用透视变换，将检测到的四个角点变换为正方形
+        Args:
+            frame: 输入图像帧
+            target_size: 目标正方形尺寸（像素），默认使用初始化时的尺寸
+        Returns:
+            warped: 透视变换后的图像
+        """
+        if target_size is None:
+            target_size = self.target_size_px
+        
+        # 获取当前角点
+        corners = self.get_current_corners()
+        
+        if len(corners) != 4:
+            print("检测到的角点数量不是4个，无法进行透视变换")
+            return frame  # 如果角点数量不是4个，返回原图
+        
+        # 确保角点顺序为：左上、右上、右下、左下
+        pts = np.float32(corners)
+        
+        # 定义目标正方形的四个角点
+        target_square = np.float32([
+            [0, 0],                    # 左上
+            [target_size - 1, 0],      # 右上
+            [target_size - 1, target_size - 1],  # 右下
+            [0, target_size - 1]       # 左下
+        ])
+        
+        # 计算透视变换矩阵
+        matrix = cv2.getPerspectiveTransform(pts, target_square)
+        
+        # 应用透视变换
+        warped = cv2.warpPerspective(frame, matrix, (target_size, target_size))
+        
+        return warped
+
     def extract_corners_from_result(self, result):
         """
         从YOLO Pose结果中提取角点（优化GPU->CPU数据传输）
@@ -175,6 +238,7 @@ class CanvasPoseDetection:
         
         # 创建窗口
         cv2.namedWindow('Canvas Pose Detection', cv2.WINDOW_NORMAL)
+        cv2.namedWindow('Warped Output', cv2.WINDOW_NORMAL)
         
         # 帧率计算（更准确）
         fps_counter = 0
@@ -191,6 +255,9 @@ class CanvasPoseDetection:
             annotated_frame, corners_list, results = self.process_frame(
                 frame, confidence_threshold=confidence_threshold
             )
+            
+            # 应用透视变换
+            warped_frame = self.apply_perspective_transform(frame)
             
             # 计算并显示FPS
             fps_counter += 1
@@ -219,6 +286,7 @@ class CanvasPoseDetection:
             
             # 显示画面
             cv2.imshow('Canvas Pose Detection', annotated_frame)
+            cv2.imshow('Warped Output', warped_frame)
             
             # 按 'q' 退出
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -320,7 +388,7 @@ class CanvasPoseDetection:
                     print(f"  {point_name} ({idx}): {corner}")
         
         return annotated, corners_list
-    
+
     def get_corners(self):
         """获取最新的角点列表"""
         return self.corners_list
@@ -352,11 +420,12 @@ def main():
         str(model_path), 
         str(camera_yaml_path), 
         str(class_yaml_path),
-        device=None  # None=自动选择，也可以手动指定：'cuda:0'/'cpu'
+        device=None,  # None=自动选择，也可以手动指定：'cuda:0'/'cpu'
+        target_size_mm=140  # 目标正方形边长为140mm
     )
     
     # 运行实时检测
-    pose_system.run(camera_id=1, confidence_threshold=0.25)
+    pose_system.run(camera_id=1, confidence_threshold=0.75)
 
 
 if __name__ == "__main__":
