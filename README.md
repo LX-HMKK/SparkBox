@@ -48,7 +48,6 @@ Sparkbox_ws/
 │   └── ui_output/               # UI输出模块
 │       ├── templates/           # 前端模板
 │       │   └── index.html       # 主页面模板
-│       ├── agent.py             # 代理服务
 │       └── app.py               # Web应用入口
 ```
 

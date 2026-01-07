@@ -3,258 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 创客教育助手</title>
+    <title>创意沙盒 | Creative Sandbox</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary: #2563eb;
-            --bg: #f8fafc;
-            --card-bg: #ffffff;
-            --text: #1e293b;
+        /* 增加一点内联样式来优化长文本的显示，避免破坏原有的 CSS 文件 */
+        .subtitle {
+            max-width: 800px; /* 限制宽度，防止文字太宽 */
+            margin: 0 auto 2rem auto; /* 居中 */
+            line-height: 1.6; /* 增加行高，提升可读性 */
+            color: #a0c0ff; /* 稍微提亮一点文字颜色 */
+            text-shadow: 0 0 5px rgba(0, 150, 255, 0.3);
         }
-
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            min-height: 100vh;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 1200px;
-            display: grid;
-            grid-template-columns: 350px 1fr;
-            gap: 20px;
-            align-items: start;
-        }
-
-        /* 左侧输入区 */
-        .input-panel {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 20px;
-        }
-
-        h1 { font-size: 1.5rem; margin-top: 0; color: var(--primary); }
-
-        textarea {
-            width: 100%;
-            height: 120px;
-            padding: 10px;
-            margin: 10px 0;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            resize: vertical;
-            font-family: inherit;
-            box-sizing: border-box;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        button:hover { background-color: #1d4ed8; }
-        button:disabled { background-color: #94a3b8; cursor: not-allowed; }
-
-        /* 右侧展示区 */
-        .result-panel {
-            background: var(--card-bg);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            display: none; /* 默认隐藏 */
-        }
-
-        .header-info {
-            border-bottom: 2px solid #f1f5f9;
-            padding-bottom: 20px;
-            margin-bottom: 20px;
-        }
-
-        .tags span {
-            display: inline-block;
-            background: #e0f2fe;
-            color: #0369a1;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            margin-right: 10px;
-            margin-top: 10px;
-        }
-
-        /* 图片区域 */
-        .image-container {
-            width: 100%;
-            height: 300px;
-            background-color: #f1f5f9;
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #e2e8f0;
-        }
-
-        .image-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain; /* 保持图片比例 */
-        }
-
-        /* 内容列表 */
-        h3 { color: var(--primary); margin-bottom: 10px; }
-
-        ul, ol { padding-left: 20px; line-height: 1.6; }
-        li { margin-bottom: 8px; }
-
-        /* 加载动画 */
-        .loading {
-            display: none;
-            text-align: center;
-            color: #64748b;
-            margin-top: 20px;
+        .highlight-text {
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
         }
     </style>
 </head>
 <body>
 
+    <div class="bg-grid"></div>
+    <div class="scan-line"></div>
+
     <div class="container">
-        <div class="input-panel">
-            <h1>🛠️ 创客作品设计</h1>
-            <p style="font-size: 0.9rem; color: #64748b;">输入你的创意，AI 将为你生成包含材料、步骤和预览图的完整方案。</p>
 
-            <textarea id="userInput" placeholder="例如：我想做一个智能浇花器，给小学生讲课用..."></textarea>
+        <header class="hud-header">
+            <div class="status-box">SYSTEM: ONLINE</div>
+            <div class="status-box time" id="clock">00:00:00</div>
+        </header>
 
-            <button id="submitBtn" onclick="generate()">✨ 生成方案</button>
+        <section id="input-section" class="screen active">
+            <div class="center-content">
+                <h1 class="glitch" data-text="CREATIVE SANDBOX">创意沙盒</h1>
 
-            <div id="loading" class="loading">
-                正在思考设计方案...<br>(约需 10-30 秒)
-            </div>
-        </div>
+                <p class="subtitle">
+                    将脑海中抽象的想法转化为<span class="highlight-text">具象化的3D方案</span><br>
+                    提供交互式制作导航，让每一个天马行空的创意在现实中落地
+                </p>
 
-        <div class="result-panel" id="resultPanel">
-            <div class="header-info">
-                <h2 id="p_name" style="margin: 0; font-size: 2rem;">项目名称</h2>
-                <div class="tags">
-                    <span id="p_user">适用人群</span>
-                    <span id="p_diff">难度</span>
-                </div>
-                <p id="p_idea" style="margin-top: 15px; color: #475569; font-style: italic;"></p>
-            </div>
-
-            <div class="image-container">
-                <img id="p_image" src="" alt="作品预览图" onerror="this.src='[https://via.placeholder.com/800x400?text=Image+Load+Failed](https://via.placeholder.com/800x400?text=Image+Load+Failed)'">
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
-                <div>
-                    <h3>📦 所需材料</h3>
-                    <ul id="p_materials"></ul>
-                </div>
-                <div>
-                    <h3>🎯 学习目标</h3>
-                    <ul id="p_outcomes"></ul>
+                <div class="input-wrapper">
+                    <input type="text" id="user-input" placeholder="请输入你的Idea..." autocomplete="off" autofocus>
+                    <div class="keyboard-hint">[ 按 Enter 键启动转化引擎 ]</div>
                 </div>
             </div>
+        </section>
 
-            <div style="margin-top: 30px;">
-                <h3>🔨 制作步骤</h3>
-                <ol id="p_steps"></ol>
+        <section id="loading-section" class="screen">
+            <div class="loader-box">
+                <div class="spinner"></div>
+                <div class="loading-text">
+                    正在构建 3D 方案...<br>
+                    <span class="sub-text">Rendering Concepts to Reality</span>
+                </div>
             </div>
-        </div>
+        </section>
+
+        <section id="result-section" class="screen">
+            <div class="content-slider" id="slider"></div>
+
+            <div class="hud-footer">
+                <div class="page-indicators" id="indicators"></div>
+                <div class="nav-hint">
+                    <span class="key-icon">←</span> 上一页
+                    <span class="key-icon">→</span> 下一页
+                    <span class="key-icon red">ESC</span> 重置
+                </div>
+            </div>
+        </section>
+
     </div>
 
-    <script>
-        async function generate() {
-            const input = document.getElementById('userInput').value;
-            if (!input.trim()) return alert("请输入你的创意！");
-
-            // 状态切换
-            const btn = document.getElementById('submitBtn');
-            const loading = document.getElementById('loading');
-            const resultPanel = document.getElementById('resultPanel');
-
-            btn.disabled = true;
-            loading.style.display = 'block';
-            resultPanel.style.display = 'none';
-
-            try {
-                const res = await fetch('/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ idea: input })
-                });
-
-                const json = await res.json();
-
-                if (json.success) {
-                    renderData(json.data);
-                } else {
-                    alert("生成失败: " + json.error);
-                }
-
-            } catch (err) {
-                alert("请求出错: " + err);
-            } finally {
-                btn.disabled = false;
-                loading.style.display = 'none';
-            }
-        }
-
-        function renderData(data) {
-            // 填充文本
-            document.getElementById('p_name').innerText = data.project_name || '未命名项目';
-            document.getElementById('p_user').innerText = '👤 ' + (data.target_user || '通用');
-            document.getElementById('p_diff').innerText = '🔥 ' + (data.difficulty || '未知');
-            document.getElementById('p_idea').innerText = data.core_idea || '';
-
-            // 填充图片
-            // 注意：因为完全依赖 AI 返回的 URL，如果 AI 返回的是假链接，这里可能会显示裂图
-            const imgEl = document.getElementById('p_image');
-            if (data.clean_image_url) {
-                imgEl.src = data.clean_image_url;
-            } else {
-                imgEl.src = '[https://via.placeholder.com/800x400?text=No+Image+Provided](https://via.placeholder.com/800x400?text=No+Image+Provided)';
-            }
-
-            // 填充列表
-            fillList('p_materials', data.materials);
-            fillList('p_steps', data.steps);
-            fillList('p_outcomes', data.learning_outcomes);
-
-            // 显示面板
-            document.getElementById('resultPanel').style.display = 'block';
-        }
-
-        function fillList(elementId, items) {
-            const el = document.getElementById(elementId);
-            el.innerHTML = ''; // 清空
-            if (!items || items.length === 0) {
-                el.innerHTML = '<li>暂无内容</li>';
-                return;
-            }
-            items.forEach(item => {
-                const li = document.createElement('li');
-                li.innerText = item;
-                el.appendChild(li);
-            });
-        }
-    </script>
+    <script src="/static/script.js"></script>
 </body>
 </html>

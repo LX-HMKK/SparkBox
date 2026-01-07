@@ -1,147 +1,119 @@
-import streamlit as st
-from agent import CreativeDemoAgent
-import time
+import json
+import re
+import random
+import urllib.parse
+from flask import Flask, render_template, request, jsonify
+from openai import OpenAI
 
-# --- 1. 页面基础配置 ---
-st.set_page_config(
-    page_title="AI 创客向导",
-    page_icon="🤖",
-    layout="centered"  # 改为居中布局，更像手机/卡片应用
-)
+# ==========================================
+# 核心逻辑类
+# ==========================================
+class CreativeDemoAgent:
+    def __init__(self, api_key: str) -> None:
+        self.client = OpenAI(
+            api_key=api_key,
+            base_url="https://api.yixia.ai/v1",
+            # 【修复1】超时时间改为 120 秒，Gemini/GPT-4 有时响应很慢
+            timeout=120,
+            max_retries=3
+        )
+        self.model = "gemini-3-pro"
 
-# 硬编码 API Key (隐藏了设置栏)
-API_KEY = "sk-Ye8XGQ9aZDxJwpTIaKc4rUGPS2Yma5G8lTsSIwO985DUescy"
+    def generate(self, user_idea: str) -> dict:
+        prompt = self._build_prompt(user_idea)
+        try:
+            # 1. 调用 AI 生成文本方案
+            completion = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}]
+            )
 
-# --- 2. 初始化 Session State (状态管理) ---
-# 用于记住生成的结果和当前页码
-if 'result' not in st.session_state:
-    st.session_state.result = None
-if 'page' not in st.session_state:
-    st.session_state.page = 1
+            content = completion.choices[0].message.content
+            json_str = self._extract_json(content)
+            result = json.loads(json_str)
+
+            # 【修复2】图片必须放在 static 文件夹下，通过 Web 路径访问
+            # 请确保你的项目目录下有 static/2.png 这个文件
+            result["preview_image"] = "/static/2.png"
+
+            return result
+
+        except Exception as e:
+            print(f"Server Error details: {e}")
+            return {
+                "error": "生成超时或失败",
+                "details": str(e),
+                "project_name": "连接超时",
+                "core_idea": "AI 响应时间过长，请重试",
+                # 即使出错也显示这张图，保持界面完整
+                "preview_image": "/static/2.png"
+            }
+
+    def _build_prompt(self, user_idea: str) -> str:
+        # 【修复3】精简 Prompt，去掉无关的图片描述要求，提高生成速度
+        return f"""
+你是一个中小学创客教育助手。
+用户想法：{user_idea}
+
+请直接输出一个 JSON 格式的制作方案。
+严格遵守 JSON 格式，不要输出任何 Markdown 标记或额外文字。
+
+{{
+  "project_name": "简短的作品名称",
+  "target_user": "适合年级",
+  "difficulty": "3星",
+  "core_idea": "一句话介绍核心功能",
+  "materials": ["材料A", "材料B", "材料C"],
+  "steps": ["第一步干什么", "第二步干什么", "第三步干什么"],
+  "learning_outcomes": ["学到什么知识1", "学到什么知识2"]
+}}
+        """
+
+    @staticmethod
+    def _extract_json(text: str) -> str:
+        try:
+            # 尝试提取 ```json ... ``` 或者是直接的 { ... }
+            match = re.search(r"\{[\s\S]*\}", text)
+            if match: return match.group()
+            return text
+        except:
+            return "{}"
 
 
-# --- 3. 辅助函数：翻页逻辑 ---
-def next_page():
-    st.session_state.page += 1
+# ==========================================
+# Flask Web 服务
+# ==========================================
+app = Flask(__name__)
+
+# 建议：如果还是报错，可以尝试换一个更稳定的模型名，例如 "gpt-3.5-turbo" 测试一下
+API_KEY = "sk-kpQ9SDHDbDgpsIjNUsyQldJf5TJzPy3EHi58r5VjOmPbIiHW"
+agent = CreativeDemoAgent(api_key=API_KEY)
 
 
-def prev_page():
-    st.session_state.page -= 1
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 
-def reset_app():
-    st.session_state.result = None
-    st.session_state.page = 1
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    # 显式处理静态文件（通常 Flask 会自动处理，但加上这个保险）
+    return app.send_static_file(filename)
 
 
-# --- 4. 主逻辑 ---
+@app.route('/api/create', methods=['POST'])
+def create_project():
+    data = request.json
+    idea = data.get('idea', '')
+    if not idea:
+        return jsonify({"error": "请输入想法"}), 400
 
-# 场景 A: 还没有生成结果 -> 显示输入框
-if st.session_state.result is None:
-    st.title("🤖 AI 创客设计助手")
-    st.markdown("### 告诉我你想做什么？")
+    print(f"收到请求: {idea}，开始请求 AI...") # 增加后台日志方便调试
+    result = agent.generate(idea)
+    print("AI 请求结束")
+    return jsonify(result)
 
-    user_input = st.text_area(
-        label="用户创意描述",  # <--- 给它一个名字
-        label_visibility="collapsed",  # <--- 告诉 Streamlit 在界面上隐藏这个名字
-        placeholder="例如：我想做一个能自动避开障碍物的智能小车...",
-        height=150
-    )
 
-    if st.button("🚀 开始设计", type="primary", use_container_width=True):
-        if not user_input:
-            st.warning("请先输入你的想法")
-        else:
-            agent = CreativeDemoAgent(api_key=API_KEY)
-            with st.spinner('AI 正在大脑风暴...绘制图纸...编写步骤...'):
-                try:
-                    # 获取结果并存入 session_state
-                    data = agent.generate(user_input)
-                    if "error" in data:
-                        st.error(f"出错啦: {data['error']}")
-                    else:
-                        st.session_state.result = data
-                        st.rerun()  # 强制刷新页面以显示结果
-                except Exception as e:
-                    st.error(f"发生错误: {e}")
-
-# 场景 B: 已经有结果了 -> 显示分页内容
-else:
-    data = st.session_state.result
-    current_page = st.session_state.page
-
-    # 顶部进度条
-    progress = (current_page / 3)
-    st.progress(progress)
-
-    # --- 第一页：封面与创意 ---
-    if current_page == 1:
-        st.subheader(f"📂 {data.get('project_name', '未命名项目')}")
-
-        # 1. 显示图片 (使用 Markdown 修复版)
-        img_str = data.get("preview_image", "")
-        if img_str:
-            if "![" in img_str and "](" in img_str:
-                start = img_str.find("](") + 2
-                end = img_str.find(")", start)
-                img_url = img_str[start:end]
-            else:
-                img_url = img_str
-            st.markdown(f"![preview]({img_url})")
-
-        # 2. 核心信息
-        st.info(f"💡 **核心创意**: {data.get('core_idea', '')}")
-
-        c1, c2 = st.columns(2)
-        with c1:
-            st.metric("适用人群", data.get('target_user', 'N/A'))
-        with c2:
-            st.metric("难度等级", data.get('difficulty', '⭐⭐⭐'))
-
-        st.markdown("---")
-
-        # 按钮区
-        col_l, col_r = st.columns([1, 1])
-        with col_l:
-            st.button("🔄 重新提问", on_click=reset_app)
-        with col_r:
-            st.button("准备材料 👉", type="primary", on_click=next_page, use_container_width=True)
-
-    # --- 第二页：所需材料 ---
-    elif current_page == 2:
-        st.header("🛠️ 准备材料")
-        st.markdown("在开始之前，请检查你是否拥有以下物品：")
-
-        materials = data.get('materials', [])
-        for mat in materials:
-            st.markdown(f"#### ▫️ {mat}")
-
-        st.markdown("---")
-
-        # 按钮区
-        col_l, col_r = st.columns([1, 1])
-        with col_l:
-            st.button("👈 返回封面", on_click=prev_page)
-        with col_r:
-            st.button("开始制作 👉", type="primary", on_click=next_page, use_container_width=True)
-
-    # --- 第三页：制作步骤 ---
-    elif current_page == 3:
-        st.header("📝 制作步骤")
-
-        steps = data.get('steps', [])
-        for i, step in enumerate(steps, 1):
-            with st.expander(f"第 {i} 步", expanded=True):
-                st.write(step)
-
-        # 学习收获
-        st.success(f"🎓 **完成这个项目，你将学会：** {', '.join(data.get('learning_outcomes', []))}")
-
-        st.markdown("---")
-
-        # 按钮区
-        col_l, col_r = st.columns([1, 1])
-        with col_l:
-            st.button("👈 查看材料", on_click=prev_page)
-        with col_r:
-            st.button("🎉 完成/新项目", type="primary", on_click=reset_app, use_container_width=True)
+if __name__ == '__main__':
+    # threaded=True 可以防止一个请求卡死整个服务
+    app.run(debug=True, port=5000, threaded=True)
