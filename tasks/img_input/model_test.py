@@ -288,11 +288,29 @@ class CanvasPoseDetection:
             cv2.imshow('Canvas Pose Detection', annotated_frame)
             cv2.imshow('Warped Output', warped_frame)
             
-            # 按 'q' 退出
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            # 按 'q' 退出，按 's' 保存透视变换图片
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
                 print("退出程序...")
                 break
-        
+            elif key == ord('s'):
+                # 创建保存图片的目录 - 使用项目根目录下的asset/img文件夹
+                workspace_root = Path(__file__).parent.parent.parent
+                save_dir = workspace_root / "asset" / "img"
+                save_dir.mkdir(parents=True, exist_ok=True)
+                
+                # 生成带时间戳的文件名
+                from datetime import datetime
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = save_dir / f"warped_{timestamp}.jpg"
+                
+                # 保存透视变换后的图片
+                success = cv2.imwrite(str(filename), warped_frame)
+                if success:
+                    print(f"透视变换图片已保存: {filename}")
+                else:
+                    print(f"保存图片失败: {filename}")
+
         # 释放资源
         cap.release()
         cv2.destroyAllWindows()
