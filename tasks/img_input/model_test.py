@@ -152,7 +152,7 @@ class CanvasPoseDetection:
         corners = self.get_current_corners()
         
         if len(corners) != 4:
-            print("检测到的角点数量不是4个，无法进行透视变换")
+            # print("检测到的角点数量不是4个，无法进行透视变换")
             return frame  # 如果角点数量不是4个，返回原图
         
         # 确保角点顺序为：左上、右上、右下、左下
@@ -400,10 +400,10 @@ class CanvasPoseDetection:
                 else:
                     point_names = ["左上", "右上", "右下", "左下"]
                 
-                print(f"\n对象 {obj_idx+1} (Class {cls}, Conf: {conf:.2f}) 的4个角点:")
+                # print(f"\n对象 {obj_idx+1} (Class {cls}, Conf: {conf:.2f}) 的4个角点:")
                 for idx, corner in enumerate(corners):
                     point_name = point_names[idx] if idx < len(point_names) else f"角点{idx}"
-                    print(f"  {point_name} ({idx}): {corner}")
+                    # print(f"  {point_name} ({idx}): {corner}")
         
         return annotated, corners_list
 
@@ -421,8 +421,8 @@ def main():
     model_path = workspace_root / "asset" / "best.pt"
     if not model_path.exists():
         print(f"警告: 训练模型不存在: {model_path}")
-        print("将使用YOLO11n-pose预训练模型进行演示")
-        model_path = "yolo11n-pose.pt"
+        # print("将使用YOLO11n-pose预训练模型进行演示")
+        # model_path = "yolo11n-pose.pt"
     
     # 配置文件路径
     camera_yaml_path = workspace_root / "asset" / "camera.yaml"
@@ -447,13 +447,13 @@ def main():
 
 
 if __name__ == "__main__":
-    # 验证CUDA可用性
-    print("="*50)
-    print(f"PyTorch CUDA可用: {torch.cuda.is_available()}")
-    print(f"OpenCV CUDA可用: {cv2.cuda.getCudaEnabledDeviceCount() > 0}")
-    if torch.cuda.is_available():
-        print(f"GPU: {torch.cuda.get_device_name(0)}")
-        print(f"CUDA版本: {torch.version.cuda}")
-    print("="*50)
+    # # 验证CUDA可用性
+    # print("="*50)
+    # print(f"PyTorch CUDA可用: {torch.cuda.is_available()}")
+    # print(f"OpenCV CUDA可用: {cv2.cuda.getCudaEnabledDeviceCount() > 0}")
+    # if torch.cuda.is_available():
+    #     print(f"GPU: {torch.cuda.get_device_name(0)}")
+    #     print(f"CUDA版本: {torch.version.cuda}")
+    # print("="*50)
     
     main()

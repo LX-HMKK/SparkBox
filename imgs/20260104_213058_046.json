@@ -1,0 +1,107 @@
+{
+  "version": "3.3.4",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "canvas",
+      "score": null,
+      "points": [
+        [
+          541.3422818791946,
+          154.43971025175134
+        ],
+        [
+          1028.606356968215,
+          154.43971025175134
+        ],
+        [
+          1028.606356968215,
+          568.4352078239609
+        ],
+        [
+          541.3422818791946,
+          568.4352078239609
+        ]
+      ],
+      "group_id": 1,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "point_tl",
+      "score": null,
+      "points": [
+        [
+          595.9493670886076,
+          202.78481012658227
+        ]
+      ],
+      "group_id": 1,
+      "description": "",
+      "difficult": false,
+      "shape_type": "point",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "point_tr",
+      "score": null,
+      "points": [
+        [
+          872.1518987341772,
+          255.18987341772151
+        ]
+      ],
+      "group_id": 1,
+      "description": "",
+      "difficult": false,
+      "shape_type": "point",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "point_br",
+      "score": null,
+      "points": [
+        [
+          958.9873417721518,
+          511.89873417721515
+        ]
+      ],
+      "group_id": 1,
+      "description": "",
+      "difficult": false,
+      "shape_type": "point",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "point_bl",
+      "score": null,
+      "points": [
+        [
+          607.824074074074,
+          499.537037037037
+        ]
+      ],
+      "group_id": 1,
+      "description": "",
+      "difficult": false,
+      "shape_type": "point",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "20260104_213058_046.png",
+  "imageData": null,
+  "imageHeight": 720,
+  "imageWidth": 1280
+}
