@@ -4,74 +4,6 @@
   "shapes": [
     {
       "kie_linking": [],
-      "label": "point",
-      "score": null,
-      "points": [
-        [
-          579.2769607843137,
-          143.25980392156862
-        ]
-      ],
-      "group_id": null,
-      "description": "",
-      "difficult": false,
-      "shape_type": "point",
-      "flags": {},
-      "attributes": {}
-    },
-    {
-      "kie_linking": [],
-      "label": "point",
-      "score": null,
-      "points": [
-        [
-          849.8801510654013,
-          222.99246066585843
-        ]
-      ],
-      "group_id": null,
-      "description": "",
-      "difficult": false,
-      "shape_type": "point",
-      "flags": {},
-      "attributes": {}
-    },
-    {
-      "kie_linking": [],
-      "label": "point",
-      "score": null,
-      "points": [
-        [
-          831.2,
-          503.2914285714286
-        ]
-      ],
-      "group_id": null,
-      "description": "",
-      "difficult": false,
-      "shape_type": "point",
-      "flags": {},
-      "attributes": {}
-    },
-    {
-      "kie_linking": [],
-      "label": "point",
-      "score": null,
-      "points": [
-        [
-          522.4089635854341,
-          450.12605042016804
-        ]
-      ],
-      "group_id": null,
-      "description": "",
-      "difficult": false,
-      "shape_type": "point",
-      "flags": {},
-      "attributes": {}
-    },
-    {
-      "kie_linking": [],
       "label": "canvas",
       "score": null,
       "points": [
@@ -92,10 +24,78 @@
           560.0
         ]
       ],
-      "group_id": null,
+      "group_id": 1,
       "description": "",
       "difficult": false,
       "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "kie_linking": [],
+      "label": "point_tl",
+      "score": null,
+      "points": [
+        [
+          579.2769607843137,
+          143.25980392156862
+        ]
+      ],
+      "group_id": 1,
+      "description": "",
+      "difficult": false,
+      "shape_type": "point",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "kie_linking": [],
+      "label": "point_tr",
+      "score": null,
+      "points": [
+        [
+          849.8801510654013,
+          222.99246066585843
+        ]
+      ],
+      "group_id": 1,
+      "description": "",
+      "difficult": false,
+      "shape_type": "point",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "kie_linking": [],
+      "label": "point_br",
+      "score": null,
+      "points": [
+        [
+          831.2,
+          503.2914285714286
+        ]
+      ],
+      "group_id": 1,
+      "description": "",
+      "difficult": false,
+      "shape_type": "point",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "kie_linking": [],
+      "label": "point_bl",
+      "score": null,
+      "points": [
+        [
+          522.4089635854341,
+          450.12605042016804
+        ]
+      ],
+      "group_id": 1,
+      "description": "",
+      "difficult": false,
+      "shape_type": "point",
       "flags": {},
       "attributes": {}
     }

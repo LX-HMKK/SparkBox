@@ -51,7 +51,7 @@ class CanvasPoseDetection:
         self.target_size_mm = target_size_mm
         # 假设每毫米对应的像素数为一个估算值，实际应用中可能需要更精确的计算
         # 这里我们先设定一个目标尺寸（像素），后续会根据相机参数进行调整
-        self.target_size_px = 400  # 可以根据实际需要调整
+        self.target_size_px = 720  # 可以根据实际需要调整
         
         # 加载类别配置文件（如果有）
         self.class_config = None

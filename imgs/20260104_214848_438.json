@@ -3,8 +3,37 @@
   "flags": {},
   "shapes": [
     {
+      "label": "canvas",
+      "score": null,
+      "points": [
+        [
+          427.3563218390804,
+          19.48275862068964
+        ],
+        [
+          706.0919540229884,
+          19.48275862068964
+        ],
+        [
+          706.0919540229884,
+          355.11494252873564
+        ],
+        [
+          427.3563218390804,
+          355.11494252873564
+        ]
+      ],
+      "group_id": 1,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
       "kie_linking": [],
-      "label": "point",
+      "label": "point_tl",
       "score": null,
       "points": [
         [
@@ -12,7 +41,7 @@
           91.97674418604655
         ]
       ],
-      "group_id": null,
+      "group_id": 1,
       "description": "",
       "difficult": false,
       "shape_type": "point",
@@ -21,36 +50,7 @@
     },
     {
       "kie_linking": [],
-      "label": "canvas",
-      "score": null,
-      "points": [
-        [
-          436.2209302325581,
-          22.790697674418613
-        ],
-        [
-          708.8953488372093,
-          14.069767441860492
-        ],
-        [
-          675.1744186046512,
-          352.4418604651163
-        ],
-        [
-          436.2209302325581,
-          364.6511627906977
-        ]
-      ],
-      "group_id": null,
-      "description": "",
-      "difficult": false,
-      "shape_type": "polygon",
-      "flags": {},
-      "attributes": {}
-    },
-    {
-      "kie_linking": [],
-      "label": "point",
+      "label": "point_tr",
       "score": null,
       "points": [
         [
@@ -58,7 +58,7 @@
           66.97674418604655
         ]
       ],
-      "group_id": null,
+      "group_id": 1,
       "description": "",
       "difficult": false,
       "shape_type": "point",
@@ -67,7 +67,7 @@
     },
     {
       "kie_linking": [],
-      "label": "point",
+      "label": "point_br",
       "score": null,
       "points": [
         [
@@ -75,7 +75,7 @@
           307.093023255814
         ]
       ],
-      "group_id": null,
+      "group_id": 1,
       "description": "",
       "difficult": false,
       "shape_type": "point",
@@ -84,7 +84,7 @@
     },
     {
       "kie_linking": [],
-      "label": "point",
+      "label": "point_bl",
       "score": null,
       "points": [
         [
@@ -92,7 +92,7 @@
           309.4186046511628
         ]
       ],
-      "group_id": null,
+      "group_id": 1,
       "description": "",
       "difficult": false,
       "shape_type": "point",
