@@ -63,7 +63,7 @@ class SquareDetector:
         # 寻找轮廓
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
-        # 寻找最大的四边形轮廓（假设是我们的白色正方形）
+        # 寻找最大的四边形轮廓（假设是我们的外部白色正方形）
         largest_contour = None
         max_area = 0
         
@@ -72,7 +72,7 @@ class SquareDetector:
             area = cv2.contourArea(contour)
             
             # 过滤掉太小的轮廓
-            if area < 1000:
+            if area < 5000:
                 continue
             
             # 近似轮廓为多边形
@@ -83,10 +83,33 @@ class SquareDetector:
             if len(approx) == 4 and area > max_area:
                 # 检查凸性
                 if cv2.isContourConvex(approx):
-                    max_area = area
-                    largest_contour = approx
+                    # 添加边长筛选，剔除不够正方形的目标
+                    # 计算四条边的长度
+                    pts = approx.reshape(4, 2)
+                    sides = []
+                    for i in range(4):
+                        p1 = pts[i]
+                        p2 = pts[(i+1)%4]
+                        side_length = np.linalg.norm(p1 - p2)
+                        sides.append(side_length)
+                    
+                    # 计算边长的最大值和最小值
+                    sides = np.array(sides)
+                    max_side = np.max(sides)
+                    min_side = np.min(sides)
+                    
+                    # 计算边长比例，如果最长边不超过最短边的一定倍数，则认为是正方形
+                    aspect_ratio = max_side / min_side if min_side > 0 else float('inf')
+                    aspect_threshold = 1.5  # 设定长宽比阈值，可根据实际情况调整
+                    
+                    if aspect_ratio <= aspect_threshold:
+                        max_area = area
+                        largest_contour = approx
         
         if largest_contour is not None:
+            # 打印识别的外部正方形面积
+            print(f"外部白色正方形面积: {max_area:.2f} 像素²")
+            
             # 绘制白色正方形的轮廓
             cv2.drawContours(undistorted_frame, [largest_contour], -1, (0, 255, 0), 2)
             
@@ -100,16 +123,142 @@ class SquareDetector:
                 cv2.putText(undistorted_frame, f"Corner {i}", tuple(point.astype(int)), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
                 
-            # 检测内部的黑色边框
-            black_border_detected = self.detect_inner_black_border(
-                undistorted_frame, corners
+            # 通过检测内部的黑色边框来识别内部白色正方形
+            inner_square_corners = self.detect_inner_white_square_from_black_border(
+                gray, largest_contour
             )
             
-            if black_border_detected is not None:
-                # 绘制内部检测到的图案
-                cv2.drawContours(undistorted_frame, [black_border_detected], -1, (255, 0, 0), 2)
+            if inner_square_corners is not None:
+                # 绘制内部白色区域的轮廓
+                cv2.drawContours(undistorted_frame, [inner_square_corners], -1, (255, 0, 0), 2)
+                
+                # 计算并打印内部白色正方形的面积
+                inner_area = cv2.contourArea(inner_square_corners)
+                print(f"内部白色正方形面积: {inner_area:.2f} 像素²")
+                
+                # 在角点处绘制标记
+                for i, point in enumerate(inner_square_corners.reshape(4, 2)):
+                    cv2.circle(undistorted_frame, tuple(point.astype(int)), 8, (0, 0, 255), -1)
+                    cv2.putText(undistorted_frame, f"Inner {i}", tuple(point.astype(int)), 
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
         
-        return undistorted_frame
+        return undistorted_frame, thresh
+
+    def detect_inner_white_square_from_black_border(self, gray_image, outer_contour):
+        """
+        通过检测黑色厚边框的内圈来识别内部的白色正方形
+        """
+        # 获取外接矩形的边界
+        outer_rect = cv2.boundingRect(outer_contour)
+        x, y, w, h = outer_rect
+        
+        # 提取感兴趣区域（ROI）
+        roi = gray_image[y:y+h, x:x+w]
+        
+        # 应用高斯模糊
+        blurred_roi = cv2.GaussianBlur(roi, (5, 5), 0)
+        
+        # 使用Otsu阈值，因为我们要找的是黑色边框，所以可能需要反转
+        _, thresh_roi = cv2.threshold(blurred_roi, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        
+        # 寻找轮廓（这里我们寻找黑色边框的轮廓）
+        contours, _ = cv2.findContours(thresh_roi, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        
+        # 寻找位于外轮廓内部的黑色边框
+        for contour in contours:
+            # 转换轮廓坐标到全图坐标系
+            converted_contour = contour.copy()
+            converted_contour[:, :, 0] += x
+            converted_contour[:, :, 1] += y
+            
+            # 检查轮廓是否在外部白色正方形内部
+            if cv2.contourArea(converted_contour) < 1000:  # 忽略过小的轮廓
+                continue
+                
+            # 近似为多边形
+            epsilon = 0.02 * cv2.arcLength(converted_contour, True)
+            approx = cv2.approxPolyDP(converted_contour, epsilon, True)
+            
+            # 检查是否为四边形
+            if len(approx) == 4:
+                # 检查是否在外部轮廓内部
+                mbr = cv2.boundingRect(converted_contour)
+                center_x, center_y = mbr[0] + mbr[2]//2, mbr[1] + mbr[3]//2
+                
+                # 使用pointPolygonTest检查中心点是否在外轮廓内部
+                if cv2.pointPolygonTest(outer_contour, (center_x, center_y), False) >= 0:
+                    # 这是一个候选的黑色边框
+                    # 现在查找这个黑色边框内的内部白色正方形
+                    inner_white_square = self.find_inner_white_square(gray_image, converted_contour)
+                    if inner_white_square is not None:
+                        return inner_white_square
+        
+        return None
+
+    def find_inner_white_square(self, gray_image, black_border_contour):
+        """
+        在黑色边框内部查找白色正方形
+        """
+        # 获取黑色边框的边界框
+        bx, by, bw, bh = cv2.boundingRect(black_border_contour)
+        
+        # 提取感兴趣区域（ROI）
+        roi = gray_image[by:by+bh, bx:bx+bw]
+        
+        # 应用高斯模糊
+        blurred_roi = cv2.GaussianBlur(roi, (5, 5), 0)
+        
+        # 使用Otsu阈值找到内部白色区域
+        _, thresh_roi = cv2.threshold(blurred_roi, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        
+        # 查找内部的白色轮廓
+        inner_contours, _ = cv2.findContours(thresh_roi, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        
+        max_inner_area = 0
+        best_inner_contour = None
+        
+        for inner_contour in inner_contours:
+            # 转换轮廓坐标到全图坐标系
+            converted_contour = inner_contour.copy()
+            converted_contour[:, :, 0] += bx
+            converted_contour[:, :, 1] += by
+            
+            # 检查面积
+            area = cv2.contourArea(converted_contour)
+            
+            # 检查是否在黑色边框内部
+            if area > 1000:  # 过滤小轮廓
+                # 近似为多边形
+                epsilon = 0.02 * cv2.arcLength(converted_contour, True)
+                approx = cv2.approxPolyDP(converted_contour, epsilon, True)
+                
+                # 检查是否为四边形且面积适中
+                if len(approx) == 4 and cv2.isContourConvex(approx):
+                    # 计算边长比例，确保是接近正方形的形状
+                    pts = approx.reshape(4, 2)
+                    sides = []
+                    for i in range(4):
+                        p1 = pts[i]
+                        p2 = pts[(i+1)%4]
+                        side_length = np.linalg.norm(p1 - p2)
+                        sides.append(side_length)
+                    
+                    sides = np.array(sides)
+                    max_side = np.max(sides)
+                    min_side = np.min(sides)
+                    
+                    aspect_ratio = max_side / min_side if min_side > 0 else float('inf')
+                    
+                    # 检查是否在黑色边框内部
+                    mbr = cv2.boundingRect(converted_contour)
+                    center_x, center_y = mbr[0] + mbr[2]//2, mbr[1] + mbr[3]//2
+                    
+                    if cv2.pointPolygonTest(black_border_contour, (center_x, center_y), False) >= 0 and aspect_ratio <= 1.2:
+                        if area > max_inner_area:
+                            max_inner_area = area
+                            best_inner_contour = approx
+        
+        return best_inner_contour
 
     def order_points(self, pts):
         """
@@ -275,13 +424,14 @@ class SquareDetector:
             h, w = frame.shape[:2]
             
             # 检测180mm白色正方形和内部20mm黑色边框
-            detected_frame = self.detect_white_square_with_black_border(frame)
+            detected_frame, thresh = self.detect_white_square_with_black_border(frame)
             
             # 应用透视变换
             warped_frame = self.apply_perspective_transform(frame)
             
             # 显示画面
             cv2.imshow('Square Detection', detected_frame)
+            cv2.imshow('Thresholded', thresh)
             cv2.imshow('Warped Output', warped_frame)
             
             # 按 'q' 退出，按 's' 保存透视变换图片
