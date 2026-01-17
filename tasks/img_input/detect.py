@@ -108,7 +108,7 @@ class SquareDetector:
         
         if largest_contour is not None:
             # 打印识别的外部正方形面积
-            print(f"外部白色正方形面积: {max_area:.2f} 像素²")
+            # print(f"外部白色正方形面积: {max_area:.2f} 像素²")
             
             # 绘制白色正方形的轮廓
             cv2.drawContours(undistorted_frame, [largest_contour], -1, (0, 255, 0), 2)
@@ -134,7 +134,7 @@ class SquareDetector:
                 
                 # 计算并打印内部白色正方形的面积
                 inner_area = cv2.contourArea(inner_square_corners)
-                print(f"内部白色正方形面积: {inner_area:.2f} 像素²")
+                # print(f"内部白色正方形面积: {inner_area:.2f} 像素²")
                 
                 # 在角点处绘制标记
                 for i, point in enumerate(inner_square_corners.reshape(4, 2)):
