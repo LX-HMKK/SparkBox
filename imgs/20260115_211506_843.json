@@ -1,0 +1,107 @@
+{
+  "version": "3.3.4",
+  "flags": {},
+  "shapes": [
+    {
+      "kie_linking": [],
+      "label": "point",
+      "score": null,
+      "points": [
+        [
+          449.4009983361064,
+          100.33277870216307
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "point",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "kie_linking": [],
+      "label": "point",
+      "score": null,
+      "points": [
+        [
+          361.9485294117647,
+          467.2610294117647
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "point",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "kie_linking": [],
+      "label": "point",
+      "score": null,
+      "points": [
+        [
+          819.1011235955056,
+          518.876404494382
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "point",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "kie_linking": [],
+      "label": "point",
+      "score": null,
+      "points": [
+        [
+          810.4779411764705,
+          170.0183823529412
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "point",
+      "flags": {},
+      "attributes": {}
+    },
+    {
+      "kie_linking": [],
+      "label": "canvas",
+      "score": null,
+      "points": [
+        [
+          251.59574468085106,
+          36.06382978723408
+        ],
+        [
+          898.4042553191489,
+          36.06382978723408
+        ],
+        [
+          898.4042553191489,
+          605.7446808510639
+        ],
+        [
+          251.59574468085106,
+          605.7446808510639
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {}
+    }
+  ],
+  "imagePath": "20260115_211506_843.png",
+  "imageData": null,
+  "imageHeight": 720,
+  "imageWidth": 1280
+}
