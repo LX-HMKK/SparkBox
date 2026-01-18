@@ -78,14 +78,14 @@ def process_image_to_base64(image_path, target_min_size):
 def analyze_student_idea(image_path, config):
     try:
         # 读取配置
-        gemini_cfg = config["gemini"]
-        prompt_text = config["prompts"]["system_prompt"]
-        target_size = config["image_processing"]["target_min_size"]
+        vision_cfg = config["vision"]
+        prompt_text = vision_cfg["prompt"]
+        target_size = vision_cfg["target_min_size"]
 
         # 初始化客户端
         client = OpenAI(
-            api_key=gemini_cfg["api_key"],
-            base_url=gemini_cfg["base_url"],
+            api_key=vision_cfg["api_key"],
+            base_url=vision_cfg["base_url"],
             timeout=60
         )
 
@@ -94,11 +94,11 @@ def analyze_student_idea(image_path, config):
         if not base64_image:
             return None
 
-        print(f"🤖 正在调用模型: {gemini_cfg['model_name']}...")
+        print(f"🤖 正在调用模型: {vision_cfg['model_name']}...")
 
         # 发送请求，依靠 Prompt 和 clean 函数来处理
         response = client.chat.completions.create(
-            model=gemini_cfg["model_name"],
+            model=vision_cfg["model_name"],
             messages=[
                 {
                     "role": "user",
@@ -138,7 +138,7 @@ def analyze_student_idea(image_path, config):
 if __name__ == "__main__":
     config = load_config()
     if config:
-        image_file = "warped_20260107_204728.jpg"
+        image_file = "perspective_20260118_142258_256.jpg"
         if os.path.exists(image_file):
             result = analyze_student_idea(image_file, config)
             if result:

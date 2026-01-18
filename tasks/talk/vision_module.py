@@ -82,11 +82,11 @@ class VisionAgent:
         # prompt 后缀
         final_prompt = prompt_text + "\n\n请务必只输出纯 JSON，不要包含 Markdown 标记。"
 
-        print(f"👁️ [Vision] 正在调用模型: {self.gemini_cfg['model_name']}...")
+        print(f"👁️ [Vision] 正在调用模型: {self.vision_cfg['model_name']}...")
 
         try:
             response = self.client.chat.completions.create(
-                model=self.gemini_cfg["model_name"],
+                model=self.vision_cfg["model_name"],
                 messages=[
                     {
                         "role": "user",

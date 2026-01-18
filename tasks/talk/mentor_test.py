@@ -1,119 +1,139 @@
-import os
-import yaml
 import json
+import re
 from openai import OpenAI
 
+class SolutionAgent:
+    """
+    接收视觉分析数据 -> 生成方案 & 绘图描述词
+    """
 
-# ================= 工具：读取配置 =================
-def load_config(config_path="config.yaml"):
-    try:
-        # 获取当前脚本所在目录，确保能找到同级目录下的 yaml
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        abs_path = os.path.join(base_dir, config_path)
-
-        with open(abs_path, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f)
-    except Exception as e:
-        print(f"❌ 配置文件读取失败: {e}")
-        return None
-
-
-# ================= 核心：导师类 =================
-class ProjectMentor:
-    def __init__(self, config, analysis_result):
+    def __init__(self, config):
         """
-        Args:
-            config: 完整的配置字典 (从 yaml 读取)
-            analysis_result: Step 1 的 JSON 数据
+        初始化：从 config 中加载配置
         """
-        # 1. 直接从 config['mentor'] 读取所有参数
-        mentor_cfg = config["mentor"]
+        self.cfg = config["solution_generator"]
 
         self.client = OpenAI(
-            api_key=mentor_cfg["api_key"],
-            base_url=mentor_cfg["base_url"],
-            timeout=120
+            api_key=self.cfg["api_key"],
+            base_url=self.cfg["base_url"],
+            timeout=120,
+            max_retries=3
         )
-        self.model = mentor_cfg["model_name"]
+        self.model = self.cfg["model_name"]
 
-        # 2. 【关键】从 YAML 中获取 Prompt
-        base_prompt = mentor_cfg["prompt"]
+    # --------------------------------------------------
+    # 公有接口
+    # --------------------------------------------------
+    def generate(self, vision_data: dict) -> dict:
+        """
+        核心生成函数
+        Args:
+            vision_data: Step 1 输出的 JSON 字典
+        Returns:
+            dict: 包含方案详情 + image_prompt 的 JSON
+        """
+        # 1. 构建 Prompt (将视觉数据注入)
+        prompt = self._build_prompt_with_context(vision_data)
 
-        # 3. 将视觉识别结果注入到 Prompt 中
-        context_str = json.dumps(analysis_result, ensure_ascii=False, indent=2)
+        try:
+            print(f"🧠 [Solution] 正在构思方案 (模型: {self.model})...")
 
-        full_system_prompt = f"""
-        {base_prompt}
+            # 2. 调用 API
+            completion = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}]
+            )
 
-        【当前输入的视觉分析数据 (Context)】
+            # 3. 提取内容
+            raw_text = completion.choices[0].message.content
+            json_str = self._extract_json(raw_text)
+
+            return json.loads(json_str)
+
+        except Exception as e:
+            print(f"❌ 方案生成失败: {e}")
+            return None
+
+    # --------------------------------------------------
+    # 内部工具
+    # --------------------------------------------------
+    def _build_prompt_with_context(self, vision_data: dict) -> str:
+        """
+        将 Step 1 的数据格式化，并与 System Prompt 拼接
+        """
+        # 将字典转为易读的字符串
+        context_str = json.dumps(vision_data, ensure_ascii=False, indent=2)
+
+        # 读取 config 中的 Prompt
+        system_prompt = self.cfg["prompt"]
+
+        # 组合
+        return f"""
+        {system_prompt}
+
+        【当前学生的草图视觉分析数据】
         {context_str}
         """
 
-        # 初始化对话历史
-        self.history = [
-            {"role": "system", "content": full_system_prompt}
-        ]
-
-    def chat(self, user_input=None):
+    @staticmethod
+    def _extract_json(text: str) -> str:
         """
-        发送对话请求
+        稳健的 JSON 提取逻辑
         """
-        # 如果有输入，加入历史；如果是 None，说明是第一轮自动触发
-        if user_input:
-            self.history.append({"role": "user", "content": user_input})
-        else:
-            self.history.append({"role": "user", "content": "请根据分析数据，直接生成方案。"})
-
         try:
-            print("🤖 导师正在思考...")
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=self.history,
-                temperature=0.2  # 这里也可以从 config 读取，看你需求
-            )
+            # 移除 Markdown 代码块标记
+            text = re.sub(r"```json\s*", "", text, flags=re.IGNORECASE)
+            text = re.sub(r"```", "", text).strip()
 
-            reply = response.choices[0].message.content
-
-            # 记住 AI 的回复
-            self.history.append({"role": "assistant", "content": reply})
-
-            return reply
-
-        except Exception as e:
-            return f"❌ 接口调用出错: {e}"
+            # 正则提取 {}
+            match = re.search(r"\{[\s\S]*\}", text)
+            if match:
+                return match.group()
+            return text
+        except:
+            return text
 
 
-# ================= 本地测试入口 =================
-
+# --------------------------------------------------
+# 独立测试入口 (模拟数据)
+# --------------------------------------------------
 if __name__ == "__main__":
-    # 1. 读取真实的 config.yaml
-    config = load_config()
+    import os
+    import yaml
+
+
+    # 1. 临时加载配置
+    def load_test_config():
+        try:
+            # 确保 config.yaml 在同级目录
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            config_path = os.path.join(base_dir, "config.yaml")
+            with open(config_path, "r", encoding="utf-8") as f:
+                return yaml.safe_load(f)
+        except Exception as e:
+            print(f"❌ 无法读取配置文件: {e}")
+            return None
+
+
+    # 2. 模拟 Step 1 的数据
+    mock_vision_data = {
+        "project_title": "减负文具盒",
+        "visual_components": ["笔帽", "笔身模块", "笔尖", "连接螺纹"],
+        "user_intent_analysis": "学生希望设计一款模块化的多功能笔，通过将不同颜色/类型的笔芯（如红、蓝、黑、荧光、铅笔）做成可自由组合的模块，从而用一支笔替代多支笔。其核心意图是减少学生需要携带的文具数量和重量，实现“减负”和便携。"
+    }
+
+    print("=== 🚀 开始测试 SolutionAgent (独立模式) ===")
+
+    config = load_test_config()
 
     if config:
-        # 2. 准备一份 Step 1 的假数据 (因为这里只测 Step 2)
-        # 实际使用时，这个数据是上一个接口传过来的
-        step1_result_mock = {
-            "project_title": "智能避障小车",
-            "visual_components": ["车轮", "超声波传感器", "底盘"],
-            "user_intent_analysis": "做一个能自动躲避障碍物的小车"
-        }
+        agent = SolutionAgent(config)
+        result = agent.generate(mock_vision_data)
 
-        print("=== ✅ 配置加载成功，开始测试导师模块 ===")
+        if result:
+            print("\n✅ 生成成功！返回数据如下：")
+            print(json.dumps(result, ensure_ascii=False, indent=2))
 
-        # 3. 初始化
-        mentor = ProjectMentor(config, step1_result_mock)
-
-        # 4. 第一轮：自动生成方案
-        initial_plan = mentor.chat()
-        print(f"\n🎓 [初始方案]:\n{initial_plan}\n")
-
-        # 5. 进入手动对话测试
-        while True:
-            user_input = input("👤 学生 (输入 q 退出): ")
-            if user_input.lower() == 'q':
-                break
-
-            reply = mentor.chat(user_input)
-            print(f"\n🎓 [导师回复]:\n{reply}\n")
+            print(f"\n🔒 [预留给 Step 3 的接口] image_prompt: \n{result.get('image_prompt')}")
     else:
-        print("请检查目录下是否存在 config.yaml")
+        print("❌ 未找到配置文件 config.yaml")
