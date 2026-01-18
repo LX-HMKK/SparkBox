@@ -5,7 +5,7 @@ import yaml
 from datetime import datetime
 
 # 设置图片保存路径（根目录下的img文件夹）
-img_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'img')
+img_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'imgs')
 os.makedirs(img_dir, exist_ok=True)
 
 # 读取标定数据

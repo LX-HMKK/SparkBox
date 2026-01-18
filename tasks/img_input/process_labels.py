@@ -143,7 +143,7 @@ if __name__ == "__main__":
     folder_path = input("请输入要处理的文件夹路径 (直接回车使用默认的img文件夹): ").strip()
     
     if not folder_path:
-        folder_path = "d:/StudyWorks/3.1/item1/Sparkbox_ws/img"
+        folder_path = "D:/StudyWorks/3.1/item1/SparkBox/imgs"
     
     if not os.path.exists(folder_path):
         print(f"路径 {folder_path} 不存在")
