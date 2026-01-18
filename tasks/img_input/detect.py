@@ -431,7 +431,7 @@ class SquareDetector:
             
             # 显示画面
             cv2.imshow('Square Detection', detected_frame)
-            cv2.imshow('Thresholded', thresh)
+            # cv2.imshow('Thresholded', thresh)
             cv2.imshow('Warped Output', warped_frame)
             
             # 按 'q' 退出，按 's' 保存透视变换图片
