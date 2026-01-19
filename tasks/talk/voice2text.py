@@ -30,7 +30,12 @@ class Voice2Text:
         self.format = pyaudio.paInt16
         self.channels = 1
         self.rate = 16000
-        self.recorder_file = self.config.get('recorder_file', 'recorder.wav')
+
+        # Save recorder file to asset directory
+        recorder_filename = self.config.get('recorder_file', 'recorder.wav')
+        asset_dir = os.path.join(base_dir, 'asset')
+        os.makedirs(asset_dir, exist_ok=True)
+        self.recorder_file = os.path.join(asset_dir, recorder_filename)
         
         # Recording state
         self.is_recording = False

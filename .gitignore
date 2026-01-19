@@ -3,4 +3,4 @@ labels
 dataset_pose
 labels_pose
 .idea
-__pycache__
+__pycache__/
