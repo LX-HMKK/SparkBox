@@ -205,5 +205,24 @@ h3 { margin-bottom: 15px; border-bottom: 1px dashed var(--primary-color); displa
     transform: skewX(-20deg);
 }
 .indicator.active { background: var(--primary-color); box-shadow: 0 0 10px var(--primary-color); }
+#input-section {
+    display: flex;
+}
+/* 幻灯片滑动动画层 */
+.content-slider {
+    position: relative;
+    overflow: hidden;
+}
+
+.slide-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.45s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+/* CSS */
+
 
 @keyframes blink { 50% { opacity: 0.2; } }
