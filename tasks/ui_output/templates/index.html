@@ -190,14 +190,14 @@
            8. 结果页 (Result Section)
            ========================================= */
         #result-section {
-            padding: 5px 20px 0 20px; display: flex; align-items: flex-start; justify-content: center;
+            padding: 0px 20px 0 20px; display: flex; align-items: flex-start; justify-content: flex-start;
         }
         .content-slider { width: 100%; height: 100%; display: flex; flex-direction: column; }
         .slide-content {
             width: 100%; height: 100%; display: flex; flex-direction: column;
             justify-content: space-between; padding-bottom: 5px; transition: opacity 0.3s ease;
         }
-        .slide-header { border-bottom: 1px solid rgba(0, 255, 255, 0.3); margin-bottom: 10px; padding-bottom: 5px; flex-shrink: 0; margin-top: 5px; }
+        .slide-header { border-bottom: 1px solid rgba(0, 255, 255, 0.3); margin-bottom: 10px; padding-bottom: 5px; flex-shrink: 0; margin-top: 0px; }
         .project-title, .slide-header h2 { font-family: 'Orbitron', sans-serif; font-size: 1.8rem; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.5); margin: 2px 0 0 0; text-transform: uppercase; }
 
         /* 列表通用 */
@@ -208,8 +208,9 @@
             border: 1px solid rgba(0, 255, 255, 0.2); font-size: 0.95rem; display: flex; justify-content: space-between;
         }
         .step-item {
-            display: flex; align-items: flex-start; margin-bottom: 8px; background: rgba(0, 0, 0, 0.3);
-            padding: 8px 10px; border-left: 2px solid rgba(0, 255, 255, 0.3);
+            display: flex; align-items: flex-start; margin-bottom: 8px;
+            background: rgba(0, 0, 0, 0.3); padding: 8px 10px; border-left: 2px solid rgba(0, 255, 255, 0.3);
+
         }
         .step-num { color: var(--neon-blue); font-size: 1.2rem; margin-right: 15px; font-weight: bold; }
         .step-text { font-size: 0.95rem; line-height: 1.4; }

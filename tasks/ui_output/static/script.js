@@ -158,8 +158,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // Voice Pagination
         if (currentState === UI_STATES.VOICE) {
-            if (e.key === 'ArrowRight') prevChatPage();
-            if (e.key === 'ArrowLeft') nextChatPage();
+            if (e.key === 'ArrowLeft') prevChatPage();
+            if (e.key === 'ArrowRight') nextChatPage();
         }
         // Result Nav
         if (currentState === UI_STATES.RESULT) {
