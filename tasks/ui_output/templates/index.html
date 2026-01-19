@@ -7,19 +7,319 @@
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
-        /* 增加一点内联样式来优化长文本的显示，避免破坏原有的 CSS 文件 */
-        .subtitle {
-            max-width: 800px; /* 限制宽度，防止文字太宽 */
-            margin: 0 auto 2rem auto; /* 居中 */
-            line-height: 1.6; /* 增加行高，提升可读性 */
-            color: #a0c0ff; /* 稍微提亮一点文字颜色 */
-            text-shadow: 0 0 5px rgba(0, 150, 255, 0.3);
+        /* =========================================
+           1. 全局变量与字体定义
+           ========================================= */
+        :root {
+            --neon-blue: #0ff;
+            --neon-red: #ff0055;
+
+            /* 全局应用您要求的文字颜色和阴影 */
+            --text-blue: #a0c0ff;
+            --text-glow: 0 0 5px rgba(0, 150, 255, 0.3);
+
+            --bg-dark: #020a12;
         }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-dark);
+
+            /* 全局文字设为淡蓝发光 */
+            color: var(--text-blue);
+            text-shadow: var(--text-glow);
+
+            font-family: 'Share Tech Mono', monospace;
+            height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
+        }
+
+        /* 强制所有元素继承字体 */
+        input, button, p, li, span, div {
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        /* =========================================
+           2. 背景视觉特效
+           ========================================= */
+        .bg-grid {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background:
+                linear-gradient(transparent 95%, rgba(0, 255, 255, 0.1) 50%),
+                linear-gradient(90deg, transparent 95%, rgba(0, 255, 255, 0.1) 50%);
+            background-size: 30px 30px;
+            perspective: 1000px; transform-style: preserve-3d;
+            opacity: 0.5; z-index: -2;
+        }
+        .scan-line {
+            position: absolute; top: 0; left: 0; width: 100%; height: 5px;
+            background: rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 10px var(--neon-blue);
+            animation: scan 3s linear infinite;
+            z-index: -1; opacity: 0.3;
+        }
+        @keyframes scan { 0% { top: -5%; } 100% { top: 105%; } }
+
+        /* =========================================
+           3. 主容器
+           ========================================= */
+        .container {
+            width: 1024px;
+            height: 600px;
+            padding: 10px 20px;
+            box-sizing: border-box;
+            display: flex; flex-direction: column;
+            position: relative;
+            background: radial-gradient(circle at center, rgba(0,40,80,0.2) 0%, rgba(0,10,20,0.9) 100%);
+            border: 2px solid var(--neon-blue);
+            box-shadow: inset 0 0 30px rgba(0, 255, 255, 0.2), 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+
+        /* =========================================
+           4. HUD 顶部与底部栏
+           ========================================= */
+        .hud-header {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            flex-shrink: 0; height: 35px; font-size: 0.9rem;
+            margin-bottom: 5px; margin-top: -5px;
+        }
+        .status-box { letter-spacing: 2px; }
+
+        .hud-footer {
+            display: flex; justify-content: space-between; align-items: center;
+            border-top: 2px solid var(--neon-blue);
+            background: rgba(0, 20, 40, 0.5);
+            flex-shrink: 0; height: 45px; font-size: 0.9rem;
+        }
+        .page-indicators { display: flex; gap: 10px; }
+        .indicator {
+            width: 15px; height: 8px; background: rgba(0, 255, 255, 0.2);
+            transform: skewX(-20deg); transition: all 0.3s;
+        }
+        .indicator.active { background: var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); }
+
+        .nav-hint { display: flex; align-items: center; padding-top: 3px; }
+        .key-icon {
+            border: 1px solid var(--text-blue); padding: 2px 6px; margin: 0 5px;
+            border-radius: 3px; font-size: 0.8rem; text-shadow: none;
+        }
+        .key-icon.red { color: #ff5555; border-color: #ff5555; }
+
+        /* =========================================
+           5. 屏幕区域通用
+           ========================================= */
+        .screen {
+            flex: 1; /* 自动填充剩余垂直空间 */
+            position: relative;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            overflow: hidden;
+        }
+        /* 当拥有 active 类时，启用 flex 布局 */
+        .screen.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* =========================================
+           6. 首页 (Input Section) - 【核心修复】
+           ========================================= */
+        #input-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100%;
+        }
+
+        .center-content {
+            width: 85%;
+            text-align: center;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        /* 大标题保持高亮白/霓虹色 */
+        h1.glitch {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 5rem;
+            color: var(--neon-blue);
+            text-shadow: 2px 2px 0px var(--neon-red);
+            margin: 0 0 2rem 0;
+            letter-spacing: 5px;
+            font-weight: bold;
+        }
+
+        /* 副标题应用样式 */
+        .subtitle {
+            max-width: 800px;
+            margin: 0 auto 3rem auto;
+            line-height: 1.6;
+            color: var(--text-blue);
+            text-shadow: var(--text-glow);
+            font-size: 1.1rem;
+        }
+
         .highlight-text {
             color: #fff;
             font-weight: bold;
             text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
         }
+
+        /* 输入框区域 */
+        .input-wrapper {
+            position: relative;
+            width: 100%; max-width: 700px;
+            margin: 0 auto; text-align: center;
+        }
+
+        #user-input {
+            width: 100%; padding: 10px 0;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--neon-blue);
+            border-radius: 0;
+            color: #fff;
+            text-align: center; font-size: 1.5rem; outline: none;
+            box-shadow: none; transition: all 0.3s;
+        }
+        #user-input:focus {
+            border-bottom-color: #fff;
+            text-shadow: 0 0 10px rgba(255,255,255,0.8);
+        }
+        #user-input::placeholder {
+            color: rgba(160, 192, 255, 0.4);
+            font-style: italic;
+        }
+
+        /* 按键提示 */
+        .keyboard-hint {
+            display: block;
+            margin-top: 25px;
+            color: var(--text-blue);
+            text-shadow: var(--text-glow);
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+        /* =========================================
+           7. 加载页 (Loading Section)
+           ========================================= */
+        #loading-section { justify-content: center; align-items: center; flex-direction: column; }
+        .loader-box { text-align: center; }
+        .spinner {
+            width: 80px; height: 80px; margin: 0 auto 30px auto;
+            border: 5px solid rgba(0, 255, 255, 0.2); border-top: 5px solid var(--neon-blue);
+            border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .loading-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: var(--text-blue);
+            text-shadow: var(--text-glow);
+            margin-bottom: 10px;
+        }
+        .sub-text {
+            display: block;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            color: var(--text-blue);
+            text-shadow: var(--text-glow);
+            line-height: 1.6;
+        }
+
+        /* =========================================
+           8. 结果页 (Result Section)
+           ========================================= */
+        #result-section {
+            padding: 5px 20px 0 20px;
+            display: flex; align-items: flex-start; justify-content: center;
+        }
+        .content-slider { width: 100%; height: 100%; display: flex; flex-direction: column; }
+        .slide-content {
+            width: 100%; height: 100%; display: flex; flex-direction: column;
+            justify-content: space-between; padding-bottom: 5px;
+            transition: opacity 0.3s ease;
+        }
+        .slide-header {
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            margin-bottom: 10px; padding-bottom: 5px; flex-shrink: 0; margin-top: 5px;
+        }
+        .project-title, .slide-header h2 {
+            font-family: 'Orbitron', sans-serif; font-size: 1.8rem;
+            color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.5);
+            margin: 2px 0 0 0; text-transform: uppercase;
+        }
+
+        .list-slide ul, .steps-container {
+            flex: 1; overflow-y: auto; padding-right: 10px;
+            scrollbar-width: thin; scrollbar-color: var(--neon-blue) rgba(0,0,0,0.3);
+        }
+
+        /* 材料清单 */
+        .material-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            padding: 0; list-style: none;
+        }
+        .material-list li {
+            background: rgba(0, 255, 255, 0.1);
+            padding: 5px 10px;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            font-size: 0.95rem; display: flex; justify-content: space-between;
+            color: var(--text-blue);
+            text-shadow: var(--text-glow);
+        }
+
+        /* 步骤文字 */
+        .step-item {
+            display: flex; align-items: flex-start; margin-bottom: 8px;
+            background: rgba(0, 0, 0, 0.3); padding: 8px 10px; border-left: 2px solid rgba(0, 255, 255, 0.3);
+        }
+        .step-num { color: var(--neon-blue); font-size: 1.2rem; margin-right: 15px; font-weight: bold; }
+        .step-text {
+            font-size: 0.95rem; line-height: 1.4;
+            color: var(--text-blue);
+            text-shadow: var(--text-glow);
+        }
+
+        /* 成果文字 */
+        .outcome-list li {
+            margin-bottom: 10px; padding-left: 30px; position: relative;
+            color: var(--text-blue);
+            text-shadow: var(--text-glow);
+            line-height: 1.6;
+        }
+        .outcome-list li::before { content: "✓"; color: var(--neon-blue); position: absolute; left: 0; font-weight: bold; }
+
+        /* 封面页信息 */
+        .cover-slide .main-visual {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            margin-bottom: 5px; overflow: hidden; background: rgba(0,0,0,0.2); border: 1px solid rgba(0,255,255,0.1);
+        }
+        .cover-slide .main-visual img { max-height: 100%; max-width: 100%; object-fit: contain; }
+
+        .cover-slide .core-info {
+            display: flex; gap: 20px; background: rgba(0, 255, 255, 0.05);
+            padding: 8px; border-left: 3px solid var(--neon-blue); flex-shrink: 0; margin-bottom: 5px;
+        }
+        .info-item label { display: block; font-size: 0.7rem; color: var(--neon-blue); margin-bottom: 2px; }
+        .info-item p {
+            margin: 0; font-size: 1rem;
+            color: var(--text-blue);
+            text-shadow: var(--text-glow);
+        }
+        .info-item.compact { width: 140px; }
+        .stars { color: #ffd700; letter-spacing: 5px; text-shadow: none; }
+
+        @media screen and (max-height: 620px) { h1.glitch { font-size: 3rem; } }
     </style>
 </head>
 <body>
@@ -44,8 +344,8 @@
                 </p>
 
                 <div class="input-wrapper">
-                    <input type="text" id="user-input" placeholder="请输入你的Idea..." autocomplete="off" autofocus>
-                    <div class="keyboard-hint">[ 按 Enter 键启动转化引擎 ]</div>
+                    <input type="text" id="user-input" placeholder="输入 Idea (如: 机械臂)..." autocomplete="off" autofocus>
+                    <div class="keyboard-hint">[ 按 Enter 键启动 ]</div>
                 </div>
             </div>
         </section>
