@@ -189,19 +189,31 @@
         /* =========================================
            8. 结果页 (Result Section)
            ========================================= */
+        /*#result-section {*/
+        /*    padding: 0px 20px 0 20px; display: flex; align-items: flex-start; justify-content: flex-start;*/
+        /*}*/
         #result-section {
-            padding: 0px 20px 0 20px; display: flex; align-items: flex-start; justify-content: flex-start;
+        padding: 5px 20px 0 20px;   /* 顶部加一点点内边距 */
+        display: flex;
+        align-items: stretch;     /* 让内容撑满高度 */
+        justify-content: flex-start;
         }
+
         .content-slider { width: 100%; height: 100%; display: flex; flex-direction: column; }
         .slide-content {
-            width: 100%; height: 100%; display: flex; flex-direction: column;
-            justify-content: space-between; padding-bottom: 5px; transition: opacity 0.3s ease;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;   /* 改为从顶部开始排 */
+            padding-bottom: 0;            /* 去掉底部撑高 */
         }
-        .slide-header { border-bottom: 1px solid rgba(0, 255, 255, 0.3); margin-bottom: 10px; padding-bottom: 5px; flex-shrink: 0; margin-top: 0px; }
+
+        .slide-header { border-bottom: 1px solid rgba(0, 255, 255, 0.3); margin-bottom: 6px; padding-bottom: 5px; flex-shrink: 0; margin-top: -8px; }
         .project-title, .slide-header h2 { font-family: 'Orbitron', sans-serif; font-size: 1.8rem; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.5); margin: 2px 0 0 0; text-transform: uppercase; }
 
         /* 列表通用 */
-        .list-slide ul, .steps-container { flex: 1; overflow-y: auto; padding-right: 10px; scrollbar-width: thin; scrollbar-color: var(--neon-blue) rgba(0,0,0,0.3); }
+        .list-slide ul, .steps-container { margin-top: -5px;flex: 1; overflow-y: auto; padding-right: 10px; scrollbar-width: thin; scrollbar-color: var(--neon-blue) rgba(0,0,0,0.3); }
         .material-list { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 0; list-style: none; }
         .material-list li {
             background: rgba(0, 255, 255, 0.1); padding: 5px 10px;
@@ -213,7 +225,7 @@
 
         }
         .step-num { color: var(--neon-blue); font-size: 1.2rem; margin-right: 15px; font-weight: bold; }
-        .step-text { font-size: 0.95rem; line-height: 1.4; }
+        .step-text { font-size: 0.9rem; line-height: 1.4; }
         .outcome-list li { margin-bottom: 10px; padding-left: 30px; position: relative; line-height: 1.6; }
         .outcome-list li::before { content: "✓"; color: var(--neon-blue); position: absolute; left: 0; font-weight: bold; }
 
