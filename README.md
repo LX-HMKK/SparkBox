@@ -2,218 +2,142 @@
 
 <div align="center">
 
-[![Generic badge](https://img.shields.io/badge/Project-SparkBox-blue.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Language-Python-brightgreen.svg)](https://shields.io/)
-[![Generic badge](https://img.shields.io/badge/Framework-OpenCV-orange.svg)](https://shields.io/)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
+[![OpenCV](https://img.shields.io/badge/Framework-OpenCV-orange.svg)](https://opencv.org/)
+[![DashScope](https://img.shields.io/badge/AI-DashScope-brightgreen.svg)](https://help.aliyun.com/document_detail/2512468.html)
+[![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](https://opensource.org/licenses/MIT)
 
-> 🎨 一个综合性的图像处理与交互系统原型
+> 🎨 一个集成了图像处理与语音识别的 AI 交互系统原型。
 
 </div>
 
 ## 项目简介
 
-创意沙盒 SparkBox 是一个综合性的图像处理与交互系统原型，旨在构建一个集图像采集、处理与未来AI模型交互和可视化输出于一体的开发平台。本项目专注于实现高质量的实时图像采集与预处理（去畸变、仿射变换），为后续模型交互和UI展示提供可靠输入。
+**创意沙盒 (SparkBox)** 是一个综合性的 AI 交互系统原型，旨在构建一个集图像采集、处理、语音识别与多模态模型交互于一体的开发平台。本项目当前实现了高质量的实时图像采集与预处理，并集成了语音转文字功能，为后续的 AI 应用提供了坚实的基础。
 
-**目标用户**：计算机视觉开发者、机器人系统开发者以及多模态交互研究者。
+**目标用户**：计算机视觉开发者、AI 应用开发者、机器人系统工程师以及多模态交互研究者。
 
 ### ✨ 核心特性
 
-- 📷 **实时图像采集**：支持摄像头实时获取图像
-- 🔧 **图像预处理**：基于标定文件进行去畸变和仿射变换
-- 🧩 **模块化设计**：便于功能扩展和维护
-- 📁 **YAML配置**：支持相机标定数据加载
+- 📷 **实时图像采集**：支持从摄像头实时获取高清图像。
+- 🔧 **图像预处理**：基于标定文件进行图像去畸变和仿射变换。
+- 🗣️ **语音识别**：通过麦克风录音，调用阿里云 DashScope 服务将语音实时转写为文字。
+- 🧩 **模块化设计**：各功能模块高度解耦，便于独立开发、测试和扩展。
+- 📁 **配置驱动**：通过 YAML 文件管理相机参数、API密钥等配置，易于维护。
 
 ## 📁 项目结构
 
 ```txt
-Sparkbox_ws/
-├── README.md                    
-├── .gitignore                  
+SparkBox/
+├── README.md                    # 项目说明
+├── .gitignore                   # Git 忽略配置
 ├── asset/                       # 资源文件目录
 │   ├── camera.yaml              # 相机标定数据
-│   └── class.yaml               # 分类标签配置
-├── img/                         # 图像存储目录（待使用）
-├── src/                         # 主函数目录（待开发）
+│   ├── class.yaml               # 分类标签配置
+│   └── recorder.wav             # (生成的)录音文件
+├── config/                      # 配置文件目录
+│   └── voice2text.yaml          # 语音识别配置
+├── src/                         # 主函数目录 (待开发)
 ├── tasks/                       # 任务模块目录
 │   ├── img_input/               # 图像采集与预处理模块
-│   │   ├── calibrate.py         # 相机标定相关处理
-│   │   ├── check_labels.py      # 标签检查
-│   │   ├── detect.py            # 检测功能
-│   │   ├── get_corners_example.py # 获取角点示例
-│   │   ├── model_test.py        # 模型测试脚本
-│   │   ├── process_labels.py    # 处理标签
+│   │   ├── ... (多个.py文件)
 │   │   └── take_img.py          # 图像采集主脚本
-│   ├── talk/                    # 模型交互模块
-│   │   └── creative_demo.py     # 创意演示
+│   ├── talk/                    # AI模型交互模块
+│   │   ├── voice2text.py        # 语音识别模块
+│   │   └── creative_demo.py     # (旧)创意演示
 │   └── ui_output/               # UI输出模块
-│       ├── templates/           # 前端模板
-│       │   └── index.html       # 主页面模板
+│       ├── ...
 │       └── app.py               # Web应用入口
-```
-
-## 提交规范
-
-```txt
-    build: Changes that affect the build system or external dependencies (example scopes: gulp, broccoli, npm)
-    ci: Changes to our CI configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs)
-    docs: 文档相关
-    feat: 特性增加
-    fix: 异常修复
-    perf: 性能优化
-    refactor: 代码重构
-    style: 不影响代码含义的改动 (white-space, formatting, missing semi-colons, etc)
-    test: 对测试的增加或修复
-    merge: 分支合并（格式 -> orgin_branch into target_branch ）
 ```
 
 ## 🛠️ 技术架构
 
-### 架构设计
-
-- **分层模块化架构**：采用模块化设计，各功能模块独立存放于 `tasks/` 目录下
-- **配置驱动**：使用 `camera.yaml` 存储相机标定参数
-
 ### 技术选型
 
 | 技术类别 | 技术栈 |
-|---------|--------|
-| **后端** | Python 3.8+ |
-| **图像处理** | opencv-python |
-| **数值计算** | numpy |
+|:---|:---:|
+| **后端语言** | Python 3.8+ |
+| **图像处理** | opencv-python, numpy |
+| **音频处理** | pyaudio |
+| **AI 服务** | DashScope (阿里云) |
 | **配置解析** | pyyaml |
-| **Web框架** | Flask |
-
-### 主要功能
-
-| 功能 | 描述 |
-|------|------|
-| **图像采集** | 通过摄像头实时获取图像（设备索引1，分辨率1280×720，30FPS） |
-| **图像预处理** | 基于标定文件进行去畸变和仿射变换 |
-| **模块化扩展** | 预留模型交互与UI输出模块接口 |
-
-## ⚠️ 现存问题
-
-> [!WARNING]
->
-> - 当前仅完成图像采集模块，其余功能待开发
-> - 主入口尚未开发（src/ 未开始整合模块）
-> - 无自动化测试和文档说明
-
+| **Web 框架** | Flask |
 
 ## 🚀 快速开始
 
-### 环境要求
+### 1. 环境要求
+
+- Python >= 3.8
+- Git
+
+### 2. 环境配置
 
 ```bash
-python >= 3.8
-opencv-python
-numpy
-pyyaml
-flask
-```
+# 1. 克隆项目 (如果需要)
+# git clone <your-repo-url>
+# cd SparkBox
 
-### 1. 环境配置
-
-```bash
-# 创建虚拟环境
+# 2. 创建并激活虚拟环境
 python -m venv venv
-
-# 激活虚拟环境 (Windows)
+# Windows
 venv\Scripts\activate
+# macOS / Linux
+# source venv/bin/activate
 
-# 安装依赖
-pip install opencv-python numpy pyyaml flask
+# 3. 安装依赖
+pip install opencv-python numpy pyyaml flask dashscope pyaudio
+```
+> **Note:** 在 Windows 上安装 `pyaudio` 如果失败，可能需要先从 [Christoph Gohlke 的页面](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio) 下载对应 Python 版本的 wheel 文件，然后使用 `pip install PyAudio‑0.2.11‑cp3x‑cp3x‑win_amd64.whl` 进行安装。
+
+### 3. 服务配置
+
+1.  **语音识别服务**
+    *   前往[阿里云百炼控制台](https://help.aliyun.com/zh/model-studio/get-api-key)获取 API Key。
+    *   将获取到的 Key 填入 `config/voice2text.yaml` 文件中的 `dashscope_api_key` 字段。
+
+    ```yaml
+    # config/voice2text.yaml
+    dashscope_api_key: "sk-xxxxxxxxxxxxxxxxxxxxxxxx"
+    # ... 其他配置
+    ```
+
+2.  **相机配置**
+    *   确保相机设备已正确连接。
+    *   根据需要修改 `asset/camera.yaml` 中的标定参数。默认使用索引为 `1` 的摄像头。
+
+## 📖 运行与使用
+
+### 语音识别模块
+
+运行脚本后，会弹出一个控制窗口，请确保窗口处于激活状态。
+
+```bash
+python tasks/talk/voice2text.py
 ```
 
-### 2. 相机配置
+**交互指令:**
+- **按 `r` 键**: 开始录音。
+- **按 `s` 键**: 停止录音并开始转写。
+- **按 `q` 键**: 退出程序。
 
-- **设备索引**：1
-- **分辨率**：1280×720
-- **帧率**：30 FPS
+录音文件会自动保存到 `asset/recorder.wav`，转写结果会打印在控制台。
 
-> ⚠️ 请确保相机设备已正确连接并配置。
-
-### 3. 运行项目
-
-#### 图像采集模块
+### 图像采集模块
 
 ```bash
 python tasks/img_input/take_img.py
 ```
+此脚本会使用 `asset/camera.yaml` 中的配置来采集并处理图像。
 
-#### 模型测试
-
-```bash
-python tasks/img_input/model_test.py
-```
-
-#### Web UI 模块
-
-```bash
-python tasks/ui_output/app.py
-```
-
-#### 模型交互演示
-
-```bash
-python tasks/talk/creative_demo.py
-```
-
-## 📖 使用说明
-
-### 图像采集与预处理
-
-使用 [take_img.py](file:///d%3A/StudyWorks/3.1/item1/Sparkbox_ws/tasks/img_input/take_img.py) 脚本可以采集图像并进行预处理：
-
-1. 从摄像头（设备索引1）采集图像
-2. 使用 [camera.yaml](file:///d%3A/StudyWorks/3.1/item1/Sparkbox_ws/asset/camera.yaml) 中的标定数据进行去畸变处理
-3. 应用仿射变换进行图像校正
-
-### 标签处理
-
-使用 [process_labels.py](file:///d%3A/StudyWorks/3.1/item1/Sparkbox_ws/tasks/img_input/process_labels.py) 和 [check_labels.py](file:///d%3A/StudyWorks/3.1/item1/Sparkbox_ws/tasks/img_input/check_labels.py) 处理和检查标签数据。
-
-### 模型测试
-
-[model_test.py](file:///d%3A/StudyWorks/3.1/item1/Sparkbox_ws/tasks/img_input/model_test.py) 提供了模型测试功能，用于验证图像处理流程或模型输入准备。
-
-### Web UI
-
-UI输出模块提供了基于Flask的Web界面，可查看处理后的图像和交互结果。
-
-## ⚙️ 配置说明
-
-### 相机标定文件
-
-[camera.yaml](file:///d%3A/StudyWorks/3.1/item1/Sparkbox_ws/asset/camera.yaml) 文件包含相机的内参和畸变系数，用于图像去畸变处理。
-
-### 标签配置
-
-[class.yaml](file:///d%3A/StudyWorks/3.1/item1/Sparkbox_ws/asset/class.yaml) 文件定义了分类标签，用于图像识别和标注。
+---
 
 ## 📋 开发计划
 
-- [ ] **模型交互模块**：集成AI模型进行图像分析和处理
-- [ ] **增强UI功能**：提供更多可视化和交互功能
-- [ ] **性能优化**：提升实时处理性能
-- [ ] **多摄像头支持**：扩展多摄像头处理能力
-- [ ] **配置界面**：提供图形化配置工具
-
-## 📋 技术约束
-
-- 实时视频流处理需维持30FPS
-- 依赖特定摄像头设备索引（index=1），需确保硬件匹配
-- 分辨率和帧率固定，灵活性受限
-
-## 🤝 贡献
-
-欢迎提交Issue和Pull Request来改进本项目。
-
-## 📄 许可证
-
-[在此处添加许可证信息]
-
----
+- [x] **模型交互模块**：集成语音识别 (DashScope)。
+- [ ] **主程序集成**：在 `src/` 目录下开发主流程，整合图像和语音模块，实现协同工作。
+- [ ] **多模态能力**：结合图像和语音输入，实现更复杂的 AI 交互，例如“看到什么说什么”。
+- [ ] **增强UI功能**：使用 Flask 或其他框架提供更丰富的 Web 可视化和交互界面。
+- [ ] **性能优化**：对图像和音频处理流程进行性能分析与优化，提升实时响应速度。
 
 <div align="center">
 

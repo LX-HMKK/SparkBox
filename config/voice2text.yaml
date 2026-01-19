@@ -1,0 +1,4 @@
+dashscope_api_key: "sk-997524bc218f41a09792246decb5e77e"
+log_path: "logs/dev.txt"
+corpus_dir: "data/corpus.txt"
+recorder_file: "recorder.wav"
