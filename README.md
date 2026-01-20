@@ -87,13 +87,14 @@ venv\Scripts\activate
 # 3. 安装依赖
 pip install opencv-python numpy pyyaml flask dashscope pyaudio
 ```
+
 > **Note:** 在 Windows 上安装 `pyaudio` 如果失败，可能需要先从 [Christoph Gohlke 的页面](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio) 下载对应 Python 版本的 wheel 文件，然后使用 `pip install PyAudio‑0.2.11‑cp3x‑cp3x‑win_amd64.whl` 进行安装。
 
 ### 3. 服务配置
 
 1.  **语音识别服务**
-    *   前往[阿里云百炼控制台](https://help.aliyun.com/zh/model-studio/get-api-key)获取 API Key。
-    *   将获取到的 Key 填入 `config/voice2text.yaml` 文件中的 `dashscope_api_key` 字段。
+    -   前往[阿里云百炼控制台](https://help.aliyun.com/zh/model-studio/get-api-key)获取 API Key。
+    -   将获取到的 Key 填入 `config/voice2text.yaml` 文件中的 `dashscope_api_key` 字段。
 
     ```yaml
     # config/voice2text.yaml
@@ -102,8 +103,8 @@ pip install opencv-python numpy pyyaml flask dashscope pyaudio
     ```
 
 2.  **相机配置**
-    *   确保相机设备已正确连接。
-    *   根据需要修改 `asset/camera.yaml` 中的标定参数。默认使用索引为 `1` 的摄像头。
+    -   确保相机设备已正确连接。
+    -   根据需要修改 `asset/camera.yaml` 中的标定参数。默认使用索引为 `1` 的摄像头。
 
 ## 📖 运行与使用
 
@@ -131,7 +132,51 @@ python tasks/img_input/take_img.py
 
 ---
 
-## 📋 开发计划
+## � Git 提交规范
+
+为了保持项目提交历史清晰一致，请遵循以下规范：
+
+### 提交消息格式
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+### 类型说明
+
+| 类型 | 描述 |
+|:---|:---|
+| **feat** | 新功能（feature） |
+| **fix** | 修复 Bug |
+| **docs** | 文档更新 |
+| **style** | 代码格式调整（不影响代码逻辑） |
+| **refactor** | 代码重构（既不是新增功能，也不是修复 Bug） |
+| **test** | 添加或修改测试 |
+| **chore** | 构建过程或辅助工具的变动 |
+| **perf** | 性能优化 |
+| **ci** | 持续集成相关变动 |
+| **build** | 影响构建系统或外部依赖的变动 |
+| **revert** | 回滚到之前的提交 |
+
+### 示例
+
+```
+feat(camera): 添加相机标定功能
+
+- 实现了基于棋盘格的相机标定
+- 支持自动保存标定参数到 YAML 文件
+- 添加了标定结果的可视化展示
+
+Closes #123
+```
+
+---
+
+## �📋 开发计划
 
 - [x] **模型交互模块**：集成语音识别 (DashScope)。
 - [ ] **主程序集成**：在 `src/` 目录下开发主流程，整合图像和语音模块，实现协同工作。
