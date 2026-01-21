@@ -100,9 +100,9 @@ if __name__ == "__main__":
     # 1. 临时加载配置
     def load_test_config():
         try:
-            # 确保 config.yaml 在同级目录
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            config_path = os.path.join(base_dir, "config.yaml")
+            # 向上回退两层,到达 d:\StudyWorks\3.1\item1\SparkBox
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            config_path = os.path.join(base_dir, 'config', "config.yaml")
             with open(config_path, "r", encoding="utf-8") as f:
                 return yaml.safe_load(f)
         except Exception as e:

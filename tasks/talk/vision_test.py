@@ -10,8 +10,9 @@ from openai import OpenAI
 
 # 加载配置
 def load_config(config_path="config.yaml"):
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    abs_path = os.path.join(base_dir, config_path)
+    # 向上回退两层,到达 d:\StudyWorks\3.1\item1\SparkBox
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    abs_path = os.path.join(base_dir, 'config', config_path)
     try:
         with open(abs_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)

@@ -9,7 +9,10 @@ from image_module import ImageGenAgent
 def load_config():
     """加载配置文件"""
     try:
-        with open("config.yaml", "r", encoding="utf-8") as f:
+        # 向上回退两层,到达 d:\StudyWorks\3.1\item1\SparkBox
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        config_path = os.path.join(base_dir, 'config', "config.yaml")
+        with open(config_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
     except Exception as e:
         print(f" 配置加载失败: {e}")
