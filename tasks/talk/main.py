@@ -1,51 +1,100 @@
 import yaml
 import os
-# 导入两个模块
+import json
 from vision_module import VisionAgent
-from mentor_test import SolutionAgent
+from mentor_module import SolutionAgent
+from image_module import ImageGenAgent
 
 
 def load_config():
-    # ... (你的加载配置代码) ...
-    with open("config.yaml", "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+    """加载配置文件"""
+    try:
+        with open("config.yaml", "r", encoding="utf-8") as f:
+            return yaml.safe_load(f)
+    except Exception as e:
+        print(f" 配置加载失败: {e}")
+        return None
 
 
 def main():
+    """完整流程：图像识别 -> 方案生成 -> 预览图生成"""
+
+    print(" SparkBox 创客作品助手 - 完整流程")
+    print("\n")
+    
+    # 加载配置
     config = load_config()
-    if not config: return
-
-    # === Step 1: 视觉识别 ===
-    vision_agent = VisionAgent(config)
-    # 假设你目录下有这张图
-    vision_result = vision_agent.analyze("warped_20260107_203757.jpg")
-
-    if not vision_result:
-        print("❌ 第一步失败，流程终止")
+    if not config:
         return
 
-    print(f"✅ 识别成功: {vision_result.get('project_title')}")
+    # === Step 1: 视觉识别 ===
+    print(" Step 1: 视觉识别")
+    print("-" * 60)
+    
+    vision_agent = VisionAgent(config)
+    # 假设你目录下有这张图
+    image_file = "perspective_20260118_142415_965.jpg"
+    
+    if not os.path.exists(image_file):
+        print(f" 图片文件不存在: {image_file}")
+        print(" 提示: 请将图片放在 tasks/talk/ 目录下")
+        return
+    
+    vision_result = vision_agent.analyze(image_file)
 
-    # === Step 2: 方案生成 (核心变化) ===
+    if not vision_result:
+        print(" 视觉识别失败，流程终止")
+        return
+
+    print(f" 识别成功: {vision_result.get('project_title')}\n")
+
+    # === Step 2: 方案生成 ===
+    print(" Step 2: 方案生成")
+    print("-" * 60)
+    
     solution_agent = SolutionAgent(config)
-    final_result = solution_agent.generate(vision_result)
+    solution_result = solution_agent.generate(vision_result)
 
-    if final_result:
-        # 1. 提取方案 (打印给用户看)
-        solution_text = final_result.get("solution_content", "生成为空")
+    if not solution_result:
+        print(" 方案生成失败，流程终止")
+        return
 
-        print("\n" + "=" * 20 + " 💡 解决方案 " + "=" * 20)
-        print(solution_text)
-        print("=" * 50)
+    # debug打印方案信息
+    print(f" 方案生成成功: {solution_result.get('project_name', '未命名')}")
+    print(f" 核心创意: {solution_result.get('core_idea', 'N/A')}\n")
 
-        # 2. 提取绘图词 (悄悄保存，不打印，留给 Step 3 用)
-        image_prompt_en = final_result.get("image_prompt", "")
+    # === Step 3: 预览图生成 ===
+    print(" Step 3: 预览图生成")
+    print("-" * 60)
+    
+    image_agent = ImageGenAgent(config)
+    image_prompt = solution_result.get("image_prompt", "")
+    
+    if not image_prompt:
+        print("️ 未找到绘图提示词，跳过预览图生成")
+    else:
+        image_url = image_agent.generate_image(image_prompt)
+        
+        if image_url:
+            print(f" 预览图生成成功！\n")
+            print(f" 预览图地址:\n{image_url}\n")
+        else:
+            print(" 预览图生成失败")
 
-        print(f"\n🔒 [后台] 已生成绘图提示词 ({len(image_prompt_en)} chars)，准备传给 Step 3...")
-        print(image_prompt_en) # 调试时可以打印看看
-
-        # TODO: 这里调用你的第三个接口
-        # draw_agent.draw(image_prompt_en)
+    # === 最终结果输出 ===
+    print("\n" + "=" * 60)
+    print(" 完整结果")
+    print("=" * 60 + "\n")
+    
+    # 组装完整数据
+    complete_result = {
+        "vision_analysis": vision_result,
+        "solution": solution_result,
+        "preview_image_url": image_url if 'image_url' in locals() and image_url else None
+    }
+    
+    # 打印 JSON 格式结果
+    print(json.dumps(complete_result, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

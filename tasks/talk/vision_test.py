@@ -138,7 +138,7 @@ def analyze_student_idea(image_path, config):
 if __name__ == "__main__":
     config = load_config()
     if config:
-        image_file = "perspective_20260118_142258_256.jpg"
+        image_file = "warped_20260115_201920.jpg"
         if os.path.exists(image_file):
             result = analyze_student_idea(image_file, config)
             if result:

@@ -60,13 +60,13 @@ class VisionAgent:
                 scale = target_min_size / min(w, h)
                 new_size = (int(w * scale), int(h * scale))
                 img = img.resize(new_size, Image.Resampling.LANCZOS)
-                print(f"🔄 [Vision] 图片已放大: {w}x{h} -> {new_size[0]}x{new_size[1]}")
+                print(f" [Vision] 图片已放大: {w}x{h} -> {new_size[0]}x{new_size[1]}")
 
             buffered = BytesIO()
             img.save(buffered, format="JPEG")
             return base64.b64encode(buffered.getvalue()).decode("utf-8")
         except Exception as e:
-            print(f"❌ 图片处理失败: {e}")
+            print(f" 图片处理失败: {e}")
             return None
 
     def analyze(self, image_path):
@@ -82,7 +82,7 @@ class VisionAgent:
         # prompt 后缀
         final_prompt = prompt_text + "\n\n请务必只输出纯 JSON，不要包含 Markdown 标记。"
 
-        print(f"👁️ [Vision] 正在调用模型: {self.vision_cfg['model_name']}...")
+        print(f" [Vision] 正在调用模型: {self.vision_cfg['model_name']}...")
 
         try:
             response = self.client.chat.completions.create(
@@ -102,10 +102,10 @@ class VisionAgent:
             raw_content = response.choices[0].message.content
 
             # 🐛 DEBUG: 打印出来看看模型到底回了什么！
-            # print(f"🐛 [调试] 原始返回: {raw_content}")
+            # print(f" [调试] 原始返回: {raw_content}")
 
             return self._extract_json_from_text(raw_content)
 
         except Exception as e:
-            print(f"❌ 视觉请求错误: {e}")
+            print(f" 视觉请求错误: {e}")
             return None

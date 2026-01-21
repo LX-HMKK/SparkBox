@@ -1,7 +1,5 @@
 import json
 import re
-import os
-import yaml
 from openai import OpenAI
 
 class SolutionAgent:
@@ -94,41 +92,3 @@ class SolutionAgent:
             return text
         except:
             return text
-
-
-if __name__ == "__main__":
-    # 1. 临时加载配置
-    def load_test_config():
-        try:
-            # 确保 config.yaml 在同级目录
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            config_path = os.path.join(base_dir, "config.yaml")
-            with open(config_path, "r", encoding="utf-8") as f:
-                return yaml.safe_load(f)
-        except Exception as e:
-            print(f" 无法读取配置文件: {e}")
-            return None
-
-
-    # 2. 模拟 Step 1 的数据
-    mock_vision_data = {
-        "project_title": "带集水槽的雨伞收纳筒",
-        "visual_components": ["雨伞","硬质塑料伞套", "集水槽"],
-        "user_intent_analysis": "学生旨在解决雨天进入室内后，湿雨伞无处放置并会滴湿地面的问题。他/她设计了一个带有集水槽的硬质塑料伞套，可以将收拢的湿雨伞直接插入，收集雨伞滴落的水，从而保持地面干燥整洁。"
-    }
-
-    print("===  开始测试 SolutionAgent  ===")
-
-    config = load_test_config()
-
-    if config:
-        agent = SolutionAgent(config)
-        result = agent.generate(mock_vision_data)
-
-        if result:
-            print("\n 生成成功！返回数据如下：")
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-
-            #print(f"\n [预留给 Step 3 的接口] image_prompt: \n{result.get('image_prompt')}")
-    else:
-        print(" 未找到配置文件 config.yaml")
