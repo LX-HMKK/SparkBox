@@ -1,0 +1,19 @@
+capture:
+  pin: 16
+  mode: single
+  debounce: 1000
+
+video:
+  pin: 18
+  mode: continuous
+  debounce: 1000
+
+PGUP:
+  pin: 22
+  mode: single
+  debounce: 1000
+
+PGDN:
+  pin: 36
+  mode: single
+  debounce: 1000
