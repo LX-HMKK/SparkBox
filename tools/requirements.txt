@@ -1,0 +1,16 @@
+# SparkBox Requirements
+# 基础依赖
+opencv-python>=4.5.0
+numpy>=1.21.0
+PyYAML>=5.4.0
+flask>=2.0.0
+
+# 语音处理依赖
+pyaudio>=0.2.11
+
+# AI/ML依赖  
+dashscope>=1.0.0  # 用于语音识别API
+
+# 可选依赖（具体项目可能需要的其他库）
+# pillow>=8.0.0
+# requests>=2.25.0
