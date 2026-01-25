@@ -276,7 +276,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     materials: ["ESP32 主控", "麦克纳姆轮 x4", "N20电机 x4", "SG90舵机 x2"],
                     steps: ["组装底盘结构", "连接电机驱动", "烧录全向运动算法", "调试机械臂"],
                     learning_outcomes: ["麦轮运动学", "PID控制", "无线通讯"],
-                    preview_image: "/static/2.png"
+                    // 优先使用 AI 返回的 preview_url，如果没有就使用备用图
+                    preview_url: "/static/2.png"
                 };
                 buildSlides(mockData);
                 setState(UI_STATES.RESULT);
@@ -301,6 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
         slidesContent = [];
 
         // 1. Cover
+        const preview = data.preview_url || data.preview_image || "/static/2.png";
         slidesContent.push({
             html: `
             <div class="slide-content cover-slide">
@@ -309,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h2 class="project-title">${data.project_name}</h2>
                 </div>
                 <div class="main-visual">
-                    <img src="${data.preview_image}" alt="Preview">
+                    <img src="${preview}" alt="Preview">
                 </div>
                 <div class="core-info">
                     <div class="info-item">

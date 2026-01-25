@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SparkBox 实时展示 | Real-time Display</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #e0e6f0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #00d9ff;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0, 217, 255, 0.3);
+        }
+
+        .status-bar {
+            background: rgba(0, 217, 255, 0.1);
+            border: 1px solid #00d9ff;
+            border-radius: 8px;
+            padding: 15px 25px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #00ff88;
+            box-shadow: 0 0 10px #00ff88;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-text {
+            font-size: 1.1rem;
+            color: #00ff88;
+        }
+
+        .timestamp {
+            font-size: 0.9rem;
+            color: #8899aa;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: rgba(26, 31, 58, 0.8);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            border-color: #00d9ff;
+            box-shadow: 0 4px 30px rgba(0, 217, 255, 0.2);
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            color: #00d9ff;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0, 217, 255, 0.3);
+        }
+
+        .card-content {
+            line-height: 1.8;
+        }
+
+        .preview-card {
+            grid-column: span 2;
+        }
+
+        .preview-image {
+            width: 100%;
+            max-height: 600px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: #8899aa;
+        }
+
+        .list-item {
+            padding: 8px 0;
+            border-left: 3px solid #00d9ff;
+            padding-left: 15px;
+            margin-bottom: 10px;
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        .highlight {
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .error-message {
+            background: rgba(255, 0, 85, 0.1);
+            border: 1px solid #ff0055;
+            color: #ff5588;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            background: #00d9ff;
+            color: #0a0e27;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 28px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        @media (max-width: 968px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            .preview-card {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ SparkBox 实时智能分析系统</h1>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span class="status-text" id="statusText">等待数据...</span>
+            </div>
+            <div class="timestamp" id="timestamp">--</div>
+        </div>
+
+        <div id="mainDisplay" class="loading">
+            <p>📡 正在连接实时数据流...</p>
+            <p style="margin-top: 10px; font-size: 0.9rem;">请在主程序中按 [A] 拍摄并分析图片</p>
+        </div>
+    </div>
+
+    <script>
+        let eventSource = null;
+        let currentData = null;
+
+        function formatTime(isoString) {
+            if (!isoString) return '--';
+            const date = new Date(isoString);
+            return date.toLocaleString('zh-CN', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit' 
+            });
+        }
+
+        function updateStatus(state, message, timestamp) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const timestampEl = document.getElementById('timestamp');
+
+            statusText.textContent = message;
+            timestampEl.textContent = formatTime(timestamp);
+
+            // Update dot color based on state
+            const colors = {
+                'ready': '#00ff88',
+                'processing': '#ffaa00',
+                'complete': '#00d9ff',
+                'error': '#ff0055'
+            };
+
+            statusDot.style.background = colors[state] || '#8899aa';
+            statusDot.style.boxShadow = `0 0 10px ${colors[state] || '#8899aa'}`;
+        }
+
+        function renderResult(data) {
+            const vision = data.vision || {};
+            const solution = data.solution || {};
+            // 优先使用 AI 返回的 preview_url，其次兼容 preview_image，最后使用本地备用图
+            const previewUrl = data.preview_url || data.preview_image || '/static/2.png';
+
+            const html = `
+                <div class="main-content">
+                    <!-- Vision Analysis -->
+                    <div class="card">
+                        <h2 class="card-title">🔍 视觉识别结果</h2>
+                        <div class="card-content">
+                            <p><span class="highlight">项目名称：</span>${vision.project_title || '未识别'}</p>
+                            <p style="margin-top: 10px;"><span class="highlight">识别文本：</span></p>
+                            <p style="margin-top: 5px; font-size: 0.95rem;">${vision.raw_text_recognized || '--'}</p>
+                            
+                            ${vision.visual_components && vision.visual_components.length > 0 ? `
+                                <p style="margin-top: 15px;"><span class="highlight">关键组件：</span></p>
+                                ${vision.visual_components.map(c => `<div class="list-item">${c}</div>`).join('')}
+                            ` : ''}
+                            
+                            ${vision.user_intent_analysis ? `
+                                <p style="margin-top: 15px;"><span class="highlight">意图分析：</span></p>
+                                <p style="margin-top: 5px; font-size: 0.95rem; line-height: 1.6;">${vision.user_intent_analysis}</p>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Solution -->
+                    <div class="card">
+                        <h2 class="card-title">💡 创客方案</h2>
+                        <div class="card-content">
+                            <p><span class="highlight">方案名称：</span>${solution.project_name || '--'}</p>
+                            <p style="margin-top: 10px;"><span class="highlight">核心创意：</span></p>
+                            <p style="margin-top: 5px; font-size: 0.95rem; line-height: 1.6;">${solution.core_idea || '--'}</p>
+                            
+                            ${solution.materials && solution.materials.length > 0 ? `
+                                <p style="margin-top: 15px;"><span class="highlight">所需材料：</span></p>
+                                ${solution.materials.map(m => `<div class="list-item">${m}</div>`).join('')}
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Steps -->
+                    ${solution.steps && solution.steps.length > 0 ? `
+                        <div class="card" style="grid-column: span 2;">
+                            <h2 class="card-title">📋 制作步骤</h2>
+                            <div class="card-content">
+                                ${solution.steps.map((step, i) => `
+                                    <div class="list-item" style="margin-bottom: 12px;">
+                                        <span class="step-number">${i + 1}</span>
+                                        ${step}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Learning Outcomes -->
+                    ${solution.learning_outcomes && solution.learning_outcomes.length > 0 ? `
+                        <div class="card">
+                            <h2 class="card-title">🎓 学习收获</h2>
+                            <div class="card-content">
+                                ${solution.learning_outcomes.map(l => `<div class="list-item">${l}</div>`).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Preview Image -->
+                    ${previewUrl ? `
+                        <div class="card preview-card">
+                            <h2 class="card-title">🎨 效果预览</h2>
+                            <div class="card-content">
+                                <img src="${previewUrl}" alt="预览图" class="preview-image" 
+                                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 fill=%22%23666%22%3E图片加载失败%3C/text%3E%3C/svg%3E'">
+                                <div style="margin-top:10px; display:flex; gap:10px; align-items:center;">
+                                    <a href="${previewUrl}" target="_blank" rel="noreferrer" style="color:#00d9ff;">🔗 在新标签打开</a>
+                                    <span style="font-size:12px; color:#8899aa;">如果图像未刷新，点击链接确认 URL 是否可访问</span>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            document.getElementById('mainDisplay').innerHTML = html;
+        }
+
+        function connectEventSource() {
+            eventSource = new EventSource('/stream');
+
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'keepalive') return;
+
+                    console.log('Received event:', data);
+                    
+                    updateStatus(data.state, data.message, data.timestamp);
+
+                    if (data.state === 'complete' && data.data) {
+                        currentData = data.data;
+                        renderResult(data.data);
+                    } else if (data.state === 'error') {
+                        document.getElementById('mainDisplay').innerHTML = `
+                            <div class="error-message">
+                                <h3>⚠️ 处理错误</h3>
+                                <p style="margin-top: 10px;">${data.message}</p>
+                            </div>
+                        `;
+                    } else if (data.state === 'processing') {
+                        // Partial update - show vision results if available
+                        if (data.data && data.data.vision) {
+                            renderResult(data.data);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Parse error:', e);
+                }
+            };
+
+            eventSource.onerror = function(error) {
+                console.error('EventSource error:', error);
+                updateStatus('error', '连接已断开，正在重连...', null);
+                
+                eventSource.close();
+                setTimeout(connectEventSource, 3000);
+            };
+
+            eventSource.onopen = function() {
+                console.log('EventSource connected');
+                updateStatus('ready', '已连接，等待分析...', new Date().toISOString());
+            };
+        }
+
+        // Add camera live stream and snapshot button
+        (function injectCameraPanel(){
+            const container = document.querySelector('.container');
+            const cameraPanel = document.createElement('div');
+            cameraPanel.className = 'card';
+            cameraPanel.style.marginTop = '10px';
+            cameraPanel.innerHTML = `
+                <h2 class="card-title">📷 实时摄像头</h2>
+                <div class="card-content">
+                    <img id="cameraStream" src="/video_feed" alt="Camera" class="preview-image" style="max-height: 320px;">
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <button id="snapshotBtn" style="padding:8px 14px; background:#00d9ff; color:#0a0e27; border:none; border-radius:6px; cursor:pointer;">拍照并分析</button>
+                        <button id="voiceStartBtn" style="padding:8px 14px; background:#00ff88; color:#0a0e27; border:none; border-radius:6px; cursor:pointer;">开始录音</button>
+                        <button id="voiceStopBtn" style="padding:8px 14px; background:#ffae00; color:#0a0e27; border:none; border-radius:6px; cursor:pointer;">停止录音并分析</button>
+                        <button id="quitBtn" style="padding:8px 14px; background:#ff0055; color:#fff; border:none; border-radius:6px; cursor:pointer;">退出程序</button>
+                        <span id="snapshotStatus" style="font-size:0.9rem; color:#8899aa;"></span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(cameraPanel);
+
+            const btn = cameraPanel.querySelector('#snapshotBtn');
+            const statusEl = cameraPanel.querySelector('#snapshotStatus');
+            btn.addEventListener('click', () => {
+                statusEl.textContent = '正在触发分析...';
+                fetch('/api/snapshot', {method: 'POST'})
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'snapshot_triggered') {
+                            statusEl.textContent = '已触发分析，请稍候...';
+                        } else {
+                            statusEl.textContent = '触发失败：' + (data.error || '未知错误');
+                        }
+                    })
+                    .catch(err => {
+                        statusEl.textContent = '触发失败：网络错误';
+                    });
+            });
+
+            const voiceStartBtn = cameraPanel.querySelector('#voiceStartBtn');
+            const voiceStopBtn = cameraPanel.querySelector('#voiceStopBtn');
+            const quitBtn = cameraPanel.querySelector('#quitBtn');
+
+            voiceStartBtn.addEventListener('click', () => {
+                statusEl.textContent = '正在开始录音...';
+                fetch('/api/voice/start', {method: 'POST'})
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'recording_started' || data.status === 'already_recording') {
+                            statusEl.textContent = '录音中...';
+                        } else {
+                            statusEl.textContent = '开始录音失败：' + (data.error || '未知错误');
+                        }
+                    })
+                    .catch(() => { statusEl.textContent = '网络错误'; });
+            });
+
+            voiceStopBtn.addEventListener('click', () => {
+                statusEl.textContent = '正在停止录音并分析...';
+                fetch('/api/voice/stop', {method: 'POST'})
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'recording_stopped' || data.status === 'not_recording') {
+                            statusEl.textContent = '已停止，开始分析...';
+                        } else {
+                            statusEl.textContent = '停止录音失败：' + (data.error || '未知错误');
+                        }
+                    })
+                    .catch(() => { statusEl.textContent = '网络错误'; });
+            });
+
+            quitBtn.addEventListener('click', () => {
+                statusEl.textContent = '正在退出程序...';
+                fetch('/api/quit', {method: 'POST'})
+                    .then(res => res.json())
+                    .then(data => {
+                        statusEl.textContent = '程序退出中...';
+                        setTimeout(() => { window.close(); }, 1000);
+                    })
+                    .catch(() => { statusEl.textContent = '网络错误'; });
+            });
+        })();
+
+        // Load initial result if available
+        fetch('/api/result')
+            .then(res => res.json())
+            .then(data => {
+                if (data && !data.error) {
+                    currentData = data;
+                    renderResult(data);
+                    updateStatus('complete', '显示已保存结果', data.timestamp);
+                }
+            })
+            .catch(err => console.log('No cached result'));
+
+        // Connect to event stream
+        connectEventSource();
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (eventSource) {
+                eventSource.close();
+            }
+        });
+    </script>
+</body>
+</html>
