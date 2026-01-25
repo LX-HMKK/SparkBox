@@ -14,8 +14,10 @@ class Voice2Text:
         """
         初始化：加载配置、设置API Key、准备录音环境。
         """
+        # Calculate base_dir first as it's needed for both config and asset paths
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        
         if config_path is None:
-            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             config_path = os.path.join(base_dir, 'config', 'voice2text.yaml')
         
         self.config = self._load_config(config_path)
@@ -51,6 +53,14 @@ class Voice2Text:
 
     def start_recording(self):
         """开始录音，打开音频流。"""
+        # 每次开始录音前，先删除旧的录音文件
+        if os.path.exists(self.recorder_file):
+            try:
+                os.remove(self.recorder_file)
+                print(f"Removed old recording file: {self.recorder_file}")
+            except OSError as e:
+                print(f"Error removing file {self.recorder_file}: {e}")
+
         if self.is_recording:
             print("Already recording.")
             return
