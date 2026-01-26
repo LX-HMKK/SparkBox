@@ -34,27 +34,27 @@ SparkBox 采用高度模块化的设计，其核心功能被分解为一系列�
 ```mermaid
 graph TD
     subgraph A[应用入口层]
-        A1[main_win.py<br>(Windows调试)]
-        A2[main_arm.py<br>(ARM64部署)]
+        A1["main_win.py<br>(Windows调试)"]
+        A2["main_arm.py<br>(ARM64部署)"]
     end
 
     subgraph B[分布式管理器框架]
-        B1[CameraManager<br>(摄像头管理)]
-        B2[AIManager<br>(AI协调)]
-        B3[WebManager<br>(Web界面)]
-        B4[GPIO Manager<br>(硬件交互)]
-        B5[Voice Handler<br>(语音处理)]
-        B6[Detection Module<br>(图像检测)]
+        B1["CameraManager<br>(摄像头管理)"]
+        B2["AIManager<br>(AI协调)"]
+        B3["WebManager<br>(Web界面)"]
+        B4["GPIO Manager<br>(硬件交互)"]
+        B5["Voice Handler<br>(语音处理)"]
+        B6["Detection Module<br>(图像检测)"]
     end
 
     subgraph C[AI能力层]
-        C1[Vision Agent<br>(Gemini视觉)]
-        C2[Solution Agent<br>(Gemini推理)]
-        C3[Image Gen Agent<br>(Pollinations生成)]
-        C4[Voice2Text<br>(DashScope ASR)]
+        C1["Vision Agent<br>(Gemini视觉)"]
+        C2["Solution Agent<br>(Gemini推理)"]
+        C3["Image Gen Agent<br>(NanoBanana生成)"]
+        C4["Voice2Text<br>(DashScope ASR)"]
     end
 
-    A --› B --› C
+    A --> B --> C
 ```
 
 ### 管理器职责
@@ -76,13 +76,13 @@ SparkBox 采用“分工协作”的AI模型组合，每个模型专注于其最
 
 ```mermaid
 graph LR
-    A[用户输入<br>(语音/图像)] --› B{多模型协调处理};
-    B --› C[综合输出];
+    A["用户输入<br>(语音/图像)"] --> B{多模型协调处理};
+    B --> C[综合输出];
 
     subgraph D[AI模型矩阵]
-        D1[Gemini (主脑)<br>• 视觉分析<br>• 逻辑推理<br>• 方案生成]
-        D2[DashScope (ASR)<br>• 语音转文字<br>• 实时识别]
-        D3[Pollinations.ai (图像)<br>• 预览图生成<br>• 高质量渲染]
+        D1["Gemini (主脑)<br>• 视觉分析<br>• 逻辑推理<br>• 方案生成"]
+        D2["DashScope (ASR)<br>• 语音转文字<br>• 实时识别"]
+        D3["NanoBanana (图像)<br>• 预览图生成<br>• 高质量渲染"]
     end
 ```
 
@@ -93,7 +93,7 @@ graph LR
 | **视觉分析** | Gemini 2.5 Pro | 图像理解、手写文字识别。 |
 | **方案生成** | Gemini 3 Pro | STEM教育方案、安全制作流程。 |
 | **语音转文字** | DashScope ASR | 实时语音识别，支持多种语言。 |
-| **图像生成** | Pollinations.ai RealVisXL | 生成照片级真实感的作品预览图。 |
+| **图像生成** | NanoBanana RealVisXL | 生成照片级真实感的作品预览图。 |
 
 ---
 
