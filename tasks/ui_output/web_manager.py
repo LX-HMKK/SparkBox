@@ -96,6 +96,18 @@ class WebManager:
             if self.ai_manager and self.ai_manager.last_complete_result:
                 return jsonify(self.ai_manager.last_complete_result)
             return jsonify({"error": "No results available"})
+
+        @self.app.route('/api/reset', methods=['POST'])
+        def api_reset():
+            """重置前端结果缓存"""
+            if self.ai_manager:
+                self.ai_manager.reset_results()
+            self.latest_status = {
+                "state": "ready",
+                "message": "System Ready",
+                "data": None
+            }
+            return jsonify({"status": "reset_ok"})
         
         @self.app.route('/api/snapshot', methods=['POST'])
         def api_snapshot():

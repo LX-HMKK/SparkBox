@@ -226,3 +226,38 @@ h3 { margin-bottom: 15px; border-bottom: 1px dashed var(--primary-color); displa
 
 
 @keyframes blink { 50% { opacity: 0.2; } }
+
+/* Thinking state animation - High Visibility Update */
+.audio-visualizer-container.thinking {
+    border-color: #ffbb00 !important;
+    background: rgba(255, 187, 0, 0.05);
+    box-shadow: 0 0 30px rgba(255, 187, 0, 0.6), inset 0 0 30px rgba(255, 187, 0, 0.2);
+    animation: thinking-pulse 0.8s ease-in-out infinite alternate;
+}
+
+.audio-visualizer-container.thinking .voice-status-text {
+    color: #ffbb00;
+    text-shadow: 0 0 15px #ffbb00;
+}
+
+.audio-visualizer-container.thinking .wave-bar {
+    background-color: #ffbb00;
+    box-shadow: 0 0 10px #ffbb00;
+    animation: wave-thinking 1.5s infinite ease-in-out;
+}
+
+@keyframes thinking-pulse {
+    0% {
+        box-shadow: 0 0 20px rgba(255, 187, 0, 0.4), inset 0 0 10px rgba(255, 187, 0, 0.1);
+        border-color: #ffbb00;
+    }
+    100% {
+        box-shadow: 0 0 60px rgba(255, 187, 0, 0.8), inset 0 0 50px rgba(255, 187, 0, 0.3);
+        border-color: #fff8e0;
+    }
+}
+
+@keyframes wave-thinking {
+    0%, 100% { height: 10px; opacity: 0.5; }
+    50% { height: 40px; opacity: 1; }
+}

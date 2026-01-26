@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
         indicators: document.getElementById('indicators'),
         navHint: document.querySelector('.nav-hint'),
         sysLogs: document.getElementById('sys-logs'),
+        clock: document.getElementById('clock'), // Added clock
 
         // 快照按钮
         snapshotBtn: document.getElementById('snapshot-btn'),
@@ -40,6 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let slidesContent = [];
     let logInterval = null;
     let isRecording = false;
+    let isThinking = false; // Added thinking state
+    let resultPollTimer = null;
+    let resultPollAttempts = 0;
+    const RESULT_POLL_INTERVAL = 1500;
+    const RESULT_POLL_MAX_ATTEMPTS = 80;
+    let lastResetAt = 0;
 
     // 聊天分页状态
     let chatData = [];
@@ -58,6 +65,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     eventSource.onerror = (error) => {
         console.error('SSE连接错误:', error);
+        // SSE断开时启动兜底轮询，确保结果仍能加载
+        if (currentState === UI_STATES.LOADING) {
+            startResultPolling('sse_error');
+        }
     };
 
     eventSource.onmessage = (e) => {
@@ -73,6 +84,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleServerEvent(event) {
         console.log('收到服务器事件:', event);
 
+        // 忽略 reset 之前的旧事件，防止加载上一次结果
+        if (lastResetAt && event && event.timestamp) {
+            const eventTime = Date.parse(event.timestamp);
+            if (!Number.isNaN(eventTime) && eventTime < lastResetAt) {
+                console.log('忽略 reset 前事件');
+                return;
+            }
+        }
+
         // 忽略keepalive消息
         if (event.type === 'keepalive') return;
 
@@ -82,16 +102,19 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('AI开始处理...');
             setState(UI_STATES.LOADING);
             startSystemLogs();
+            startResultPolling('processing');
         } else if (event.state === 'complete' && event.data) {
             // AI处理完成，显示结果
             console.log('AI处理完成，构建结果页面');
             clearInterval(logInterval);
+            stopResultPolling();
             buildSlides(event.data);
             setState(UI_STATES.RESULT);
         } else if (event.state === 'error') {
             // 处理错误
             console.error('AI处理错误:', event.message);
             clearInterval(logInterval);
+            stopResultPolling();
             alert('处理失败: ' + event.message);
             setState(UI_STATES.INPUT);
         }
@@ -104,25 +127,33 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (event.state === 'voice_user') {
             // 用户语音已识别
             console.log('用户语音:', event.message);
-            if (dom.voiceStatus) dom.voiceStatus.textContent = "THINKING...";
+            setThinking(true);
             addChatMessageWithSplit('user', event.message);
         }
         else if (event.state === 'voice_processing') {
             // AI正在思考
             console.log('AI思考中:', event.message);
-            if (dom.voiceStatus) dom.voiceStatus.textContent = "THINKING...";
+            setThinking(true);
         }
         else if (event.state === 'voice_response') {
             // AI回复（自动拆分长消息并清理markdown）
             console.log('AI回复:', event.message);
-            addChatMessageWithSplit('ai', event.message);
-            if (dom.voiceStatus) dom.voiceStatus.textContent = "STANDBY";
+            setThinking(false);
+            try {
+                addChatMessageWithSplit('ai', event.message);
+            } catch (err) {
+                console.error('Render AI response failed:', err);
+            }
         }
         else if (event.state === 'voice_error') {
             // 语音错误
             console.error('语音错误:', event.message);
-            addChatMessageWithSplit('system', '错误: ' + event.message);
-            if (dom.voiceStatus) dom.voiceStatus.textContent = "STANDBY";
+            setThinking(false);
+            try {
+                addChatMessageWithSplit('system', '错误: ' + event.message);
+            } catch (err) {
+                console.error('Render error message failed:', err);
+            }
         }
     }
 
@@ -174,6 +205,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentState === state) return;
         currentState = state;
         renderState();
+    }
+
+    function setThinking(thinking) {
+        isThinking = thinking;
+        if (dom.voiceStatus) {
+            dom.voiceStatus.textContent = thinking ? "THINKING..." : "STANDBY";
+        }
+        if (dom.visualizerContainer) {
+            if (thinking) {
+                dom.visualizerContainer.classList.add('thinking');
+            } else {
+                dom.visualizerContainer.classList.remove('thinking');
+            }
+        }
     }
 
     // ===============================
@@ -251,6 +296,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // PTT
         if (currentState === UI_STATES.VOICE && e.key === ' ' && !isRecording) {
+            if (isThinking) {
+                console.log('Thinking... Recording disabled.');
+                return;
+            }
             e.preventDefault();
             startVoiceRecording();
         }
@@ -524,13 +573,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function reset() {
         // dom.userInput.value = ''; // 注释：userInput已删除
+        lastResetAt = Date.now();
         currentSlideIndex = 0;
         slidesContent = [];
         chatData = [];
         chatPage = 1;
         if (logInterval) clearInterval(logInterval);
+        stopResultPolling();
+        if (dom.slider) dom.slider.innerHTML = '';
+        if (dom.indicators) dom.indicators.innerHTML = '';
+        fetch('/api/reset', { method: 'POST' }).catch(() => {});
         setState(UI_STATES.INPUT);
         // setTimeout(() => dom.userInput.focus(), 100); // 注释：userInput已删除
+    }
+
+    // ===============================
+    // 7.5 结果兜底轮询
+    // ===============================
+    function startResultPolling(reason) {
+        if (resultPollTimer) return;
+        resultPollAttempts = 0;
+        console.log('启动结果轮询:', reason);
+        resultPollTimer = setInterval(() => {
+            resultPollAttempts++;
+            fetch('/api/result')
+                .then(res => res.json())
+                .then(data => {
+                    if (data && !data.error && (data.preview_url || data.solution || data.vision)) {
+                        console.log('轮询拿到结果，更新页面');
+                        clearInterval(logInterval);
+                        stopResultPolling();
+                        buildSlides(data);
+                        setState(UI_STATES.RESULT);
+                    }
+                })
+                .catch(() => {
+                    // 忽略轮询错误，继续尝试
+                });
+
+            if (resultPollAttempts >= RESULT_POLL_MAX_ATTEMPTS) {
+                console.warn('结果轮询超时，停止轮询');
+                stopResultPolling();
+            }
+        }, RESULT_POLL_INTERVAL);
+    }
+
+    function stopResultPolling() {
+        if (resultPollTimer) {
+            clearInterval(resultPollTimer);
+            resultPollTimer = null;
+        }
     }
 
     // ===============================
@@ -538,6 +630,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===============================
     function buildSlides(data) {
         slidesContent = [];
+        // 新结果到达时回到封面，确保预览图立即可见
+        currentSlideIndex = 0;
 
         // 提取solution数据（后端返回的是嵌套结构）
         const solution = data.solution || data;
@@ -565,10 +659,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="info-item compact">
                         <label>DIFFICULTY</label>
                         <p class="stars">${solution.difficulty || data.difficulty || '⭐⭐⭐'}</p>
-                    </div>
-                    <div class="info-item compact">
-                        <label>TARGET</label>
-                        <p>${solution.target_user || data.target_user || '初中生'}</p>
                     </div>
                 </div>
             </div>`,
@@ -716,6 +806,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 dom.voiceStatus.textContent = "STANDBY";
             });
     }
+
+    // ===============================
+    // 10. Clock
+    // ===============================
+    function updateClock() {
+        if (!dom.clock) return;
+        const now = new Date();
+        dom.clock.textContent = now.toLocaleTimeString('zh-CN', { hour12: false });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
 
     // 初始化
     renderState();

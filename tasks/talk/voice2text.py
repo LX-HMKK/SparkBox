@@ -8,6 +8,8 @@ import dashscope
 from http import HTTPStatus
 from dashscope.audio.asr import Recognition
 import numpy as np
+import threading
+import sys
 
 class Voice2Text:
     def __init__(self, config_path=None):
@@ -44,6 +46,9 @@ class Voice2Text:
         self.frames = []
         self.stream = None
         self.p = pyaudio.PyAudio()
+        self._record_thread = None
+        self._stop_event = threading.Event()
+        self._frames_lock = threading.Lock()
 
     def _load_config(self, path):
         if not os.path.exists(path):
@@ -66,7 +71,9 @@ class Voice2Text:
             return
         print("Recording started...")
         self.is_recording = True
-        self.frames = []
+        with self._frames_lock:
+            self.frames = []
+        self._stop_event.clear()
         
         try:
             # 尝试打开音频流，添加错误处理
@@ -96,6 +103,10 @@ class Voice2Text:
                 self.is_recording = False
                 raise
 
+        # 启动后台线程，避免主循环阻塞导致丢音
+        self._record_thread = threading.Thread(target=self._record_loop, daemon=True)
+        self._record_thread.start()
+
     def stop_recording(self):
         """停止录音，关闭音频流并保存文件。"""
         if not self.is_recording:
@@ -103,11 +114,24 @@ class Voice2Text:
         
         print("Recording stopped.")
         self.is_recording = False
-        self.stream.stop_stream()
-        self.stream.close()
-        self.stream = None
+        self._stop_event.set()
+        if self._record_thread and self._record_thread.is_alive():
+            self._record_thread.join(timeout=2.0)
+        self._record_thread = None
+        if self.stream:
+            try:
+                self.stream.stop_stream()
+                self.stream.close()
+            except Exception as e:
+                print(f"Error closing audio stream: {e}")
+            finally:
+                self.stream = None
 
-        if not self.frames:
+        with self._frames_lock:
+            has_frames = bool(self.frames)
+            frames_copy = list(self.frames)
+
+        if not has_frames:
             print("No audio recorded.")
             return False
 
@@ -116,16 +140,37 @@ class Voice2Text:
         wf.setnchannels(self.channels)
         wf.setsampwidth(self.p.get_sample_size(self.format))
         wf.setframerate(self.rate)
-        wf.writeframes(b''.join(self.frames))
+        wf.writeframes(b''.join(frames_copy))
         wf.close()
         print(f"Audio saved to {self.recorder_file}")
         return True
 
     def read_audio_chunk(self):
         """从音频流中读取一个数据块。"""
+        # 若后台线程已接管录音，这里无需重复读取
+        if self._record_thread and self._record_thread.is_alive():
+            return
         if self.is_recording and self.stream:
-            data = self.stream.read(self.chunk)
-            self.frames.append(data)
+            try:
+                data = self.stream.read(self.chunk, exception_on_overflow=False)
+                with self._frames_lock:
+                    self.frames.append(data)
+            except Exception as e:
+                print(f"Audio read error: {e}")
+                # 防止异常导致主线程崩溃
+                self.is_recording = False
+
+    def _record_loop(self):
+        """后台录音循环，确保持续读取音频，避免主线程阻塞丢帧。"""
+        while self.is_recording and not self._stop_event.is_set():
+            try:
+                data = self.stream.read(self.chunk, exception_on_overflow=False)
+                with self._frames_lock:
+                    self.frames.append(data)
+            except Exception as e:
+                print(f"Audio read error: {e}")
+                self.is_recording = False
+                break
 
     def transcribe_audio(self):
         """转写已保存的音频文件。"""
@@ -135,12 +180,15 @@ class Voice2Text:
 
         print("Transcribing...")
         print(f"Using sample rate: {self.rate} Hz")
-        recognition = Recognition(model='paraformer-realtime-v2',
-                                  format='wav',
-                                  sample_rate=self.rate,  # 使用实际采样率
-                                  callback=None)
-        
-        response = recognition.call(file=self.recorder_file)
+        try:
+            recognition = Recognition(model='paraformer-realtime-v2',
+                                      format='wav',
+                                      sample_rate=self.rate,  # 使用实际采样率
+                                      callback=None)
+            response = recognition.call(file=self.recorder_file)
+        except Exception as e:
+            print(f"Transcription error: {e}")
+            return None
 
         if response.status_code == HTTPStatus.OK:
             if response.output and 'sentence' in response.output:
@@ -161,52 +209,108 @@ class Voice2Text:
 
 
 if __name__ == "__main__":
-    v2t = Voice2Text()
-    
-    window_name = "Voice Recorder Control"
-    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-    cv2.resizeWindow(window_name, 400, 100)
-    
-    img_ready = np.zeros((100, 400, 3), dtype=np.uint8)
-    cv2.putText(img_ready, "Press 'r' to START", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-    
-    img_rec = np.zeros((100, 400, 3), dtype=np.uint8)
-    cv2.putText(img_rec, "Recording... 's' to STOP", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-
-    print("Control Window Open.")
-    print("Press 'r' to START recording.")
-    print("Press 's' to STOP recording.")
-    print("Press 'q' to QUIT.")
-    
-    cv2.imshow(window_name, img_ready)
-    
-    audio_saved = False
-    
-    while True:
-        key = cv2.waitKey(10) & 0xFF
+    # Check for CLI mode argument
+    if len(sys.argv) > 1 and sys.argv[1] in ['--cli', '--console', '-c']:
+        import time
+        import select
+        import tty
+        import termios
         
-        if v2t.is_recording:
-            v2t.read_audio_chunk()
-            cv2.imshow(window_name, img_rec)
-        else:
-            cv2.imshow(window_name, img_ready)
+        v2t = Voice2Text()
+        print("=== Console Voice Recorder Mode ===")
+        print("Controls: [r] Record  [s] Stop  [q] Quit")
+        
+        def is_data():
+            return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
 
-        if key == ord('r'):
-            v2t.start_recording()
-        elif key == ord('s'):
-            if v2t.is_recording:
-                audio_saved = v2t.stop_recording()
-                break
-        elif key == ord('q'):
-            v2t.stop_recording() # Ensure stream is closed if recording
-            break
+        old_settings = termios.tcgetattr(sys.stdin)
+        try:
+            tty.setcbreak(sys.stdin.fileno())
             
-    cv2.destroyAllWindows()
+            while True:
+                if is_data():
+                    key = sys.stdin.read(1).lower()
+                    
+                    if key == 'q':
+                        if v2t.is_recording:
+                            v2t.stop_recording()
+                        print("\nQuitting...")
+                        break
+                    
+                    elif key == 'r':
+                        if not v2t.is_recording:
+                            v2t.start_recording()
+                            
+                    elif key == 's':
+                        if v2t.is_recording:
+                            if v2t.stop_recording():
+                                print("Transcribing...")
+                                text = v2t.transcribe_audio()
+                                if text:
+                                    print("-" * 30)
+                                    print("Recognition Result:")
+                                    print(text)
+                                    print("-" * 30)
+                                print("Ready. [r] Record [q] Quit")
+                
+                time.sleep(0.05)
+        
+        except KeyboardInterrupt:
+            print("\nInterrupted by user.")
+        finally:
+            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+            if v2t.is_recording:
+                v2t.stop_recording()
+            v2t.close()
+            print("Exited.")
 
-    if audio_saved:
-        text = v2t.transcribe_audio()
-        if text is not None:
-            print("\nRecognition Result:")
-            print(text)
-    
-    v2t.close()
+    else:
+        # Original GUI Mode
+        v2t = Voice2Text()
+        
+        window_name = "Voice Recorder Control"
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(window_name, 400, 100)
+        
+        img_ready = np.zeros((100, 400, 3), dtype=np.uint8)
+        cv2.putText(img_ready, "Press 'r' to START", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        
+        img_rec = np.zeros((100, 400, 3), dtype=np.uint8)
+        cv2.putText(img_rec, "Recording... 's' to STOP", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+
+        print("Control Window Open.")
+        print("Press 'r' to START recording.")
+        print("Press 's' to STOP recording.")
+        print("Press 'q' to QUIT.")
+        
+        # cv2.imshow(window_name, img_ready)
+        
+        audio_saved = False
+        
+        while True:
+            key = cv2.waitKey(10) & 0xFF
+            
+            if v2t.is_recording:
+                v2t.read_audio_chunk()
+                cv2.imshow(window_name, img_rec)
+            else:
+                cv2.imshow(window_name, img_ready)
+
+            if key == ord('r'):
+                v2t.start_recording()
+            elif key == ord('s'):
+                if v2t.is_recording:
+                    audio_saved = v2t.stop_recording()
+                    # GUI模式下原逻辑是录一次就退出循环，这里保持原样，或者你可以去掉break使其循环使用
+                    text = v2t.transcribe_audio()
+                    if text is not None:
+                        print("\nRecognition Result:")
+                        print(text)
+                    # break # Commented out break to allow multiple recordings in GUI mode as well, simpler experience
+                    audio_saved = False 
+            elif key == ord('q'):
+                v2t.stop_recording() # Ensure stream is closed if recording
+                break
+                
+        cv2.destroyAllWindows()
+        v2t.close()

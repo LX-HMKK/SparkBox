@@ -3,8 +3,12 @@ AI管理器 - 负责AI流程管理、语音处理和AI pipeline协调
 """
 import threading
 import json
+import os
+import shutil
 from datetime import datetime
 from pathlib import Path
+import urllib.request
+import uuid
 
 
 class AIManager:
@@ -36,6 +40,24 @@ class AIManager:
         
         # 事件回调
         self.event_callback = None
+
+        # 日志目录
+        base_dir = Path(__file__).resolve().parents[2]
+        self.log_dir = base_dir / "logs" / "ai_logs"
+        self.log_images_dir = self.log_dir / "images"
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        self.log_images_dir.mkdir(parents=True, exist_ok=True)
+
+        # 当前对话日志文件
+        self.current_log_path = None
+
+    def reset_results(self):
+        """清空上一次结果，避免前端拉取到旧数据。"""
+        self.last_vision_result = None
+        self.last_solution_result = None
+        self.last_complete_result = None
+        self.status_message = "Ready"
+        self.is_processing = False
     
     def set_event_callback(self, callback):
         """设置事件回调函数"""
@@ -45,6 +67,121 @@ class AIManager:
         """推送事件"""
         if self.event_callback:
             self.event_callback(state, message, data)
+
+    def _get_log_file_path(self) -> Path:
+        now = datetime.now()
+        suffix = uuid.uuid4().hex[:6]
+        filename = now.strftime(f"%Y-%m-%d_%H%M%S_{suffix}.json")
+        return self.log_dir / filename
+
+    def _start_new_log_session(self):
+        """开启新的对话日志文件（一次对话对应一个文件）"""
+        self.current_log_path = self._get_log_file_path()
+
+    def _append_log_entries(self, entries: list):
+        """追加日志条目，格式参照 ai_logs 日志"""
+        if not self.current_log_path:
+            self._start_new_log_session()
+
+        log_path = self.current_log_path
+        existing = []
+        if log_path.exists():
+            try:
+                with open(log_path, "r", encoding="utf-8") as f:
+                    existing = json.load(f)
+                    if not isinstance(existing, list):
+                        existing = []
+            except Exception:
+                existing = []
+
+        existing.extend(entries)
+        with open(log_path, "w", encoding="utf-8") as f:
+            json.dump(existing, f, ensure_ascii=False, indent=2)
+
+    def _log_text(self, role: str, content: str):
+        if not content:
+            return
+        self._append_log_entries([
+            {"role": role, "type": "text", "content": content}
+        ])
+
+    def _log_image(self, role: str, image_path_or_url: str, is_url: bool = False):
+        if not image_path_or_url:
+            return
+
+        if is_url:
+            local_path = self._download_image(image_path_or_url)
+            if local_path:
+                self._append_log_entries([
+                    {"role": role, "type": "image", "content": local_path}
+                ])
+            return
+
+        try:
+            src_path = Path(image_path_or_url)
+            if not src_path.exists():
+                return
+
+            target_name = src_path.name
+            dest_path = self.log_images_dir / target_name
+
+            if src_path.resolve() != dest_path.resolve():
+                shutil.copy2(src_path, dest_path)
+
+            rel_path = os.path.join("images", target_name)
+            self._append_log_entries([
+                {"role": role, "type": "image", "content": rel_path}
+            ])
+        except Exception as e:
+            print(f"[AIManager] Log image failed: {e}")
+
+    def _download_image(self, url: str) -> str | None:
+        """下载URL图片到本地日志目录，返回相对路径"""
+        try:
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"generated_{ts}.jpg"
+            dest_path = self.log_images_dir / filename
+
+            with urllib.request.urlopen(url, timeout=20) as resp:
+                content = resp.read()
+                with open(dest_path, "wb") as f:
+                    f.write(content)
+
+            return os.path.join("images", filename)
+        except Exception as e:
+            print(f"[AIManager] Download image failed: {e}")
+            return None
+
+    def _format_solution_text(self, solution_result: dict) -> str:
+        """将方案结果整理为分段要点，便于上位机展示"""
+        if not solution_result:
+            return ""
+
+        parts = []
+        name = solution_result.get("project_name") or solution_result.get("project_title")
+        if name:
+            parts.append(f"项目名称：{name}")
+
+        core_idea = solution_result.get("core_idea")
+        if core_idea:
+            parts.append(f"核心思路：{core_idea}")
+
+        materials = solution_result.get("materials")
+        if materials:
+            mat_str = "、".join(materials)
+            parts.append(f"材料清单：{mat_str}")
+
+        steps = solution_result.get("steps")
+        if steps:
+            step_lines = "\n".join([f"{idx+1}. {s}" for idx, s in enumerate(steps)])
+            parts.append(f"制作步骤：\n{step_lines}")
+
+        outcomes = solution_result.get("learning_outcomes")
+        if outcomes:
+            out_str = "\n".join([f"- {o}" for o in outcomes])
+            parts.append(f"学习收获：\n{out_str}")
+
+        return "\n\n".join(parts)
     
     def run_ai_pipeline(self, image_path):
         """
@@ -56,6 +193,9 @@ class AIManager:
         self.is_processing = True
         self.status_message = "Analyzing Image..."
         self._push_event("processing", "Analyzing Image...")
+
+        # 新的一次分析视为新对话
+        self._start_new_log_session()
         
         try:
             print("\n--- Starting AI Pipeline ---")
@@ -70,6 +210,9 @@ class AIManager:
                 print("Vision analysis failed.")
                 self.status_message = "Vision Failed"
                 return
+
+            # 记录用户图片日志
+            self._log_image("user", str(image_path))
             
             # Save vision result
             self.last_vision_result = vision_result
@@ -87,6 +230,10 @@ class AIManager:
             
             # Save solution result
             self.last_solution_result = solution_result
+
+            # 记录方案文本日志
+            formatted_text = self._format_solution_text(solution_result)
+            self._log_text("ai", formatted_text)
             
             print(f"Solution: {solution_result.get('project_name')}")
             self.status_message = "Generating Preview..."
@@ -97,10 +244,15 @@ class AIManager:
             preview_url = None
             if image_prompt:
                 preview_url = self.image_agent.generate_image(image_prompt)
+                # 预取生成链接，避免前端首次加载时需要手动点开
+                if preview_url:
+                    self._prefetch_preview_url(preview_url)
             
             if preview_url:
                 print(f"Preview URL: {preview_url}")
                 self.status_message = "Pipeline Complete! Check Console."
+                # 记录预览图日志（URL）
+                self._log_image("ai", preview_url, is_url=True)
             else:
                 self.status_message = "Pipeline Complete (No Image)."
             
@@ -128,6 +280,19 @@ class AIManager:
             self._push_event("error", str(e))
         finally:
             self.is_processing = False
+
+    def _prefetch_preview_url(self, url: str):
+        """后台轻量请求一次预览图，确保前端无需手动打开即可开始加载"""
+        def _fetch():
+            try:
+                print(f"[AIManager] Prefetch preview: {url}")
+                # 只读取少量数据即可触发远端生成/缓存
+                with urllib.request.urlopen(url, timeout=10) as resp:
+                    resp.read(1024)
+            except Exception as e:
+                print(f"[AIManager] Prefetch failed: {e}")
+
+        threading.Thread(target=_fetch, daemon=True).start()
     
     def run_ai_pipeline_async(self, image_path):
         """异步运行AI流程"""
@@ -159,6 +324,9 @@ class AIManager:
         # 推送用户消息到前端
         self._push_event("voice_user", text, {"user_text": text})
         self._push_event("voice_processing", "AI正在思考...")
+
+        # 记录用户对话日志
+        self._log_text("user", text)
         
         try:
             print("\n--- Running Chat AI ---")
@@ -177,6 +345,9 @@ class AIManager:
                     "ai_text": ai_response
                 })
                 print("✅ voice_response事件已推送")
+
+                # 记录AI回复日志
+                self._log_text("ai", ai_response)
             else:
                 print("AI chat failed or returned no response.")
                 self.status_message = "AI Chat Failed"
@@ -205,14 +376,16 @@ class AIManager:
         self._push_event("voice_processing", "正在转录语音...")
         
         text = self.voice_handler.transcribe_audio()
-        if text:
+        
+        # Check for "null" string which indicates failure from voice2text
+        if text and text.strip().lower() != "null":
             print(f"\n[Voice Command]: {text}\n")
             self.status_message = f"Voice: {text[:20]}..."
             self.run_chat_ai(text)
         else:
-            print("Voice transcription failed or empty.")
-            self.status_message = "Voice: No text"
-            self._push_event("voice_error", "语音识别失败，请重试")
+            print("Voice transcription failed or returned 'null'.")
+            self.status_message = "Voice: Transcription Failed"
+            self._push_event("voice_error", "语音识别失败，请再次输入")
     
     def transcribe_and_chat_async(self):
         """异步转录语音并进行对话"""
