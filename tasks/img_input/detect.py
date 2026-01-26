@@ -390,7 +390,7 @@ class SquareDetector:
         
         return warped
 
-    def run(self, camera_id=1):
+    def run(self, camera_id=0):
         """
         运行实时检测
         """
@@ -478,7 +478,7 @@ def main():
     detector = SquareDetector(str(camera_yaml_path))
     
     # 运行实时检测
-    detector.run(camera_id=1)
+    detector.run(camera_id=0)
 
 
 if __name__ == "__main__":

@@ -26,6 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
         navHint: document.querySelector('.nav-hint'),
         sysLogs: document.getElementById('sys-logs'),
 
+        // 快照按钮
+        snapshotBtn: document.getElementById('snapshot-btn'),
+
         // 语音相关
         chatHistory: document.getElementById('chat-history'),
         chatPageStatus: document.getElementById('chat-page-status'),
@@ -42,6 +45,95 @@ document.addEventListener('DOMContentLoaded', () => {
     let chatData = [];
     let chatPage = 1;
     const CHAT_PAGE_SIZE = 4;
+
+    // ===============================
+    // SSE 事件监听
+    // ===============================
+    console.log('初始化SSE连接到 /stream');
+    const eventSource = new EventSource('/stream');
+
+    eventSource.onopen = () => {
+        console.log('SSE连接已建立');
+    };
+
+    eventSource.onerror = (error) => {
+        console.error('SSE连接错误:', error);
+    };
+
+    eventSource.onmessage = (e) => {
+        try {
+            const event = JSON.parse(e.data);
+            handleServerEvent(event);
+        } catch (err) {
+            console.error('解析SSE消息失败:', err, e.data);
+        }
+    };
+
+    // 处理服务器事件
+    function handleServerEvent(event) {
+        console.log('收到服务器事件:', event);
+
+        // 忽略keepalive消息
+        if (event.type === 'keepalive') return;
+
+        // ========== 拍照分析事件 ==========
+        if (event.state === 'processing') {
+            // AI正在处理，切换到加载状态
+            console.log('AI开始处理...');
+            setState(UI_STATES.LOADING);
+            startSystemLogs();
+        } else if (event.state === 'complete' && event.data) {
+            // AI处理完成，显示结果
+            console.log('AI处理完成，构建结果页面');
+            clearInterval(logInterval);
+            buildSlides(event.data);
+            setState(UI_STATES.RESULT);
+        } else if (event.state === 'error') {
+            // 处理错误
+            console.error('AI处理错误:', event.message);
+            clearInterval(logInterval);
+            alert('处理失败: ' + event.message);
+            setState(UI_STATES.INPUT);
+        }
+
+        // ========== 语音交互事件 ==========
+        else if (event.state === 'voice_recording') {
+            // 录音中，不需要切换页面
+            console.log('录音中:', event.message);
+        }
+        else if (event.state === 'voice_user') {
+            // 用户语音已识别
+            console.log('用户语音:', event.message);
+            if (dom.voiceStatus) dom.voiceStatus.textContent = "THINKING...";
+            addChatMessageWithSplit('user', event.message);
+        }
+        else if (event.state === 'voice_processing') {
+            // AI正在思考
+            console.log('AI思考中:', event.message);
+            if (dom.voiceStatus) dom.voiceStatus.textContent = "THINKING...";
+        }
+        else if (event.state === 'voice_response') {
+            // AI回复（自动拆分长消息并清理markdown）
+            console.log('AI回复:', event.message);
+            addChatMessageWithSplit('ai', event.message);
+            if (dom.voiceStatus) dom.voiceStatus.textContent = "STANDBY";
+        }
+        else if (event.state === 'voice_error') {
+            // 语音错误
+            console.error('语音错误:', event.message);
+            addChatMessageWithSplit('system', '错误: ' + event.message);
+            if (dom.voiceStatus) dom.voiceStatus.textContent = "STANDBY";
+        }
+    }
+
+    // 初始化完成日志
+    console.log('=== SparkBox UI 初始化完成 ===');
+    console.log('DOM元素检查:', {
+        snapshotBtn: dom.snapshotBtn ? '✓ 已找到' : '✗ 未找到',
+        inputSection: dom.inputSection ? '✓' : '✗',
+        loadingSection: dom.loadingSection ? '✓' : '✗',
+        resultSection: dom.resultSection ? '✓' : '✗'
+    });
 
     // ===============================
     // 3. 状态管理
@@ -70,9 +162,12 @@ document.addEventListener('DOMContentLoaded', () => {
             target.classList.add('active');
         }
 
+        // 注释：user-input已删除
+        /*
         if (currentState === UI_STATES.VOICE) {
             dom.userInput.blur();
         }
+        */
     }
 
     function setState(state) {
@@ -131,11 +226,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===============================
     // 5. 交互逻辑
     // ===============================
+    // 注释：user-input已从HTML中删除，不再需要此事件监听器
+    /*
     dom.userInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && dom.userInput.value.trim()) {
             startGeneration(dom.userInput.value.trim());
         }
     });
+    */
 
     document.addEventListener('keydown', (e) => {
         // Result -> Voice
@@ -186,6 +284,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // 拍照按钮点击事件
+    if (dom.snapshotBtn) {
+        dom.snapshotBtn.addEventListener('click', () => {
+            console.log('拍照按钮被点击');
+
+            // 立即切换到加载状态
+            setState(UI_STATES.LOADING);
+            startSystemLogs();
+
+            // 调用API触发快照
+            fetch('/api/snapshot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    console.log('快照API响应:', data);
+                    if (data.status === 'snapshot_triggered') {
+                        // 成功触发，等待SSE事件推送结果
+                        console.log('快照已触发，等待AI处理完成...');
+                    } else if (data.error) {
+                        console.error('快照失败:', data.error);
+                        clearInterval(logInterval);
+                        alert('拍照失败: ' + data.error);
+                        setState(UI_STATES.INPUT);
+                    }
+                })
+                .catch(err => {
+                    console.error('快照请求失败:', err);
+                    clearInterval(logInterval);
+                    alert('拍照请求失败，请检查网络连接');
+                    setState(UI_STATES.INPUT);
+                });
+        });
+    } else {
+        console.error('✗ 拍照按钮未找到！检查HTML中是否有 id="snapshot-btn"');
+    }
+
+    if (dom.snapshotBtn) {
+        console.log('✓ 拍照按钮事件已绑定');
+    }
+
+
     // ===============================
     // 6. 聊天分页逻辑
     // ===============================
@@ -221,9 +362,106 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function addChatMessage(role, text) {
-        chatData.push({role, text});
+        chatData.push({ role, text });
         const totalPages = Math.ceil(chatData.length / CHAT_PAGE_SIZE);
         chatPage = totalPages; // 自动跳到最新页
+        renderChatList(true);
+    }
+
+    // 清理markdown符号
+    function stripMarkdown(text) {
+        if (!text) return '';
+        return text
+            // 移除标题符号 ### ## #
+            .replace(/^#{1,6}\s*/gm, '')
+            // 移除粗体 **text** 或 __text__
+            .replace(/\*\*(.*?)\*\*/g, '$1')
+            .replace(/__(.*?)__/g, '$1')
+            // 移除斜体 *text* 或 _text_
+            .replace(/\*(.*?)\*/g, '$1')
+            .replace(/_(.*?)_/g, '$1')
+            // 移除代码块 ```code```
+            .replace(/```[\s\S]*?```/g, '')
+            // 移除行内代码 `code`
+            .replace(/`(.*?)`/g, '$1')
+            // 移除列表符号 * - 1.
+            .replace(/^\s*[\*\-]\s+/gm, '• ')
+            .replace(/^\s*\d+\.\s+/gm, '')
+            // 移除链接 [text](url)
+            .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+            // 移除图片 ![alt](url)
+            .replace(/!\[([^\]]*)\]\([^\)]+\)/g, '')
+            // 清理多余空行
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+    }
+
+    // 将长消息拆分成多条（简化可靠版本）
+    function splitLongMessage(text, maxLength = 180) {
+        const cleaned = stripMarkdown(text);
+        if (cleaned.length <= maxLength) {
+            return [cleaned];
+        }
+
+        const chunks = [];
+
+        // 先按段落拆分（双换行）
+        const paragraphs = cleaned.split(/\n\n+/).filter(p => p.trim());
+
+        for (const para of paragraphs) {
+            if (para.length <= maxLength) {
+                // 段落短，直接作为一个chunk
+                chunks.push(para.trim());
+            } else {
+                // 段落长，按句子拆分（使用兼容性更好的方法）
+                const withMarkers = para.replace(/([。！？.!?；;])/g, '$1|||SPLIT|||');
+                const sentences = withMarkers.split('|||SPLIT|||').filter(s => s.trim());
+                let currentChunk = '';
+
+                for (const sent of sentences) {
+                    const trimmedSent = sent.trim();
+                    if (!trimmedSent) continue;
+
+                    if (currentChunk.length + trimmedSent.length + 1 <= maxLength) {
+                        currentChunk += (currentChunk ? ' ' : '') + trimmedSent;
+                    } else {
+                        if (currentChunk) chunks.push(currentChunk);
+
+                        // 如果单个句子超长，按字符强制拆分
+                        if (trimmedSent.length > maxLength) {
+                            for (let i = 0; i < trimmedSent.length; i += maxLength) {
+                                chunks.push(trimmedSent.slice(i, i + maxLength));
+                            }
+                            currentChunk = '';
+                        } else {
+                            currentChunk = trimmedSent;
+                        }
+                    }
+                }
+                if (currentChunk) chunks.push(currentChunk);
+            }
+        }
+
+        return chunks.length > 0 ? chunks : [cleaned.slice(0, maxLength) + '...'];
+    }
+
+    // 添加聊天消息（支持长消息拆分）
+    function addChatMessageWithSplit(role, text) {
+        if (role === 'ai') {
+            // AI消息：清理markdown并拆分
+            const chunks = splitLongMessage(text);
+            chunks.forEach((chunk, index) => {
+                chatData.push({
+                    role,
+                    text: chunks.length > 1 ? `[${index + 1}/${chunks.length}] ${chunk}` : chunk
+                });
+            });
+        } else {
+            // 用户/系统消息：直接添加
+            chatData.push({ role, text: stripMarkdown(text) });
+        }
+        const totalPages = Math.ceil(chatData.length / CHAT_PAGE_SIZE);
+        chatPage = totalPages;
         renderChatList(true);
     }
 
@@ -251,8 +489,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         fetch('/api/create', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({idea})
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idea })
         })
             .then(res => res.json())
             .then(data => {
@@ -285,14 +523,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function reset() {
-        dom.userInput.value = '';
+        // dom.userInput.value = ''; // 注释：userInput已删除
         currentSlideIndex = 0;
         slidesContent = [];
         chatData = [];
         chatPage = 1;
         if (logInterval) clearInterval(logInterval);
         setState(UI_STATES.INPUT);
-        setTimeout(() => dom.userInput.focus(), 100);
+        // setTimeout(() => dom.userInput.focus(), 100); // 注释：userInput已删除
     }
 
     // ===============================
@@ -301,14 +539,20 @@ document.addEventListener('DOMContentLoaded', () => {
     function buildSlides(data) {
         slidesContent = [];
 
+        // 提取solution数据（后端返回的是嵌套结构）
+        const solution = data.solution || data;
+        // 添加时间戳参数强制刷新图片，避免缓存问题
+        const timestamp = Date.now();
+        let previewBase = data.preview_url || solution.preview_url || data.preview_image || '/static/placeholder.png';
+        const preview = previewBase.includes('?') ? `${previewBase}&_t=${timestamp}` : `${previewBase}?_t=${timestamp}`;
+
         // 1. Cover
-        const preview = data.preview_url || data.preview_image || "/static/2.png";
         slidesContent.push({
             html: `
             <div class="slide-content cover-slide">
                 <div class="slide-header">
                     <span class="step-tag">PROJECT OVERVIEW</span>
-                    <h2 class="project-title">${data.project_name}</h2>
+                    <h2 class="project-title">${solution.project_name || data.project_name || 'Unknown'}</h2>
                 </div>
                 <div class="main-visual">
                     <img src="${preview}" alt="Preview">
@@ -320,20 +564,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div class="info-item compact">
                         <label>DIFFICULTY</label>
-                        <p class="stars">${data.difficulty}</p>
+                        <p class="stars">${solution.difficulty || data.difficulty || '⭐⭐⭐'}</p>
                     </div>
                     <div class="info-item compact">
                         <label>TARGET</label>
-                        <p>${data.target_user}</p>
+                        <p>${solution.target_user || data.target_user || '初中生'}</p>
                     </div>
                 </div>
             </div>`,
             typingTargetSelector: '#type-core-idea',
-            typingText: data.core_idea
+            typingText: solution.core_idea || data.core_idea || ''
         });
 
         // 2. Materials
-        const matList = data.materials.map(m => `<li>${m}</li>`).join('');
+        const materials = solution.materials || data.materials || [];
+        const matList = materials.map(m => `<li>${m}</li>`).join('');
         slidesContent.push({
             html: `
             <div class="slide-content list-slide">
@@ -343,7 +588,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // 3. Steps
-        const stepList = data.steps.map((s, i) => `
+        const steps = solution.steps || data.steps || [];
+        const stepList = steps.map((s, i) => `
             <li class="step-item">
                 <span class="step-num">${String(i + 1).padStart(2, '0')}</span>
                 <span class="step-text">${s}</span>
@@ -357,7 +603,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // 4. Outcomes
-        const outList = data.learning_outcomes.map(o => `<li>${o}</li>`).join('');
+        const outcomes = solution.learning_outcomes || data.learning_outcomes || [];
+        const outList = outcomes.map(o => `<li>${o}</li>`).join('');
         slidesContent.push({
             html: `
             <div class="slide-content list-slide">
@@ -413,28 +660,61 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ===============================
-    // 9. 语音交互模拟
+    // 9. 语音交互
     // ===============================
     function startVoiceRecording() {
+        console.log('开始录音...');
         isRecording = true;
         dom.voiceStatus.textContent = "LISTENING...";
         if (dom.visualizerContainer) dom.visualizerContainer.classList.add('speaking');
+
+        // 调用后端API开始录音
+        fetch('/api/voice/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log('录音API响应:', data);
+                if (data.error) {
+                    console.error('录音失败:', data.error);
+                    dom.voiceStatus.textContent = "ERROR";
+                    isRecording = false;
+                    if (dom.visualizerContainer) dom.visualizerContainer.classList.remove('speaking');
+                }
+            })
+            .catch(err => {
+                console.error('录音请求失败:', err);
+                dom.voiceStatus.textContent = "ERROR";
+                isRecording = false;
+                if (dom.visualizerContainer) dom.visualizerContainer.classList.remove('speaking');
+            });
     }
 
     function stopVoiceRecording() {
+        console.log('停止录音...');
         isRecording = false;
         dom.voiceStatus.textContent = "PROCESSING...";
         if (dom.visualizerContainer) dom.visualizerContainer.classList.remove('speaking');
 
-        setTimeout(() => {
-            addChatMessage('user', "这个部分能不能用更轻的材料？");
-            dom.voiceStatus.textContent = "GENERATING...";
-
-            setTimeout(() => {
-                addChatMessage('ai', "建议将车架材料更换为碳纤维复合板，可减轻约 40% 重量。");
+        // 调用后端API停止录音并转录
+        fetch('/api/voice/stop', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log('停止录音API响应:', data);
+                if (data.error) {
+                    console.error('停止录音失败:', data.error);
+                    dom.voiceStatus.textContent = "STANDBY";
+                }
+                // 结果会通过SSE事件推送
+            })
+            .catch(err => {
+                console.error('停止录音请求失败:', err);
                 dom.voiceStatus.textContent = "STANDBY";
-            }, 1000);
-        }, 600);
+            });
     }
 
     // 初始化

@@ -100,7 +100,7 @@ class SparkBoxApp:
     def _init_managers(self):
         """初始化各个管理器"""
         # 初始化摄像头管理器
-        self.camera_manager = CameraManager(camera_id=1, width=1280, height=720)
+        self.camera_manager = CameraManager(camera_id=0, width=1280, height=720)
         
         # 初始化AI管理器
         self.ai_manager = AIManager(
@@ -139,11 +139,21 @@ class SparkBoxApp:
     
     def handle_snapshot(self, frame):
         """处理快照 - 简化版，委托给管理器"""
+        print("\n" + "=" * 50)
+        print("📸 开始处理快照")
+        print(f"  帧尺寸: {frame.shape if frame is not None else 'None'}")
+        print(f"  AI忙碌: {self.ai_manager.is_busy()}")
+        
         if self.ai_manager.is_busy():
-            print("AI is busy, please wait.")
+            print("⚠️ AI正在忙碌")
+            if hasattr(self, 'web_manager'):
+                self.web_manager.push_event("error", "AI正在处理中，请稍后再试")
             return
         
-        print("Snapshot triggered!")
+        print("✓ 开始保存快照...")        
+        # 推送processing事件
+        if hasattr(self, 'web_manager'):
+            self.web_manager.push_event("processing", "正在分析图像...")
         
         # 使用摄像头管理器保存快照
         try:
@@ -151,11 +161,18 @@ class SparkBoxApp:
                 frame, self.detector, self.logs_dir, self.temp_dir
             )
             
+            print(f"  快照已保存: {log_path}")
+            print(f"  临时文件: {temp_path}")
+            print("✓ 触发AI流程...")
+            print("=" * 50)
+            
             # 触发AI流程
             self.ai_manager.run_ai_pipeline_async(temp_path)
             
         except Exception as e:
-            print(f"Snapshot error: {e}")
+            print(f"❌ 快照错误: {e}")
+            if hasattr(self, 'web_manager'):
+                self.web_manager.push_event("error", f"快照失败: {str(e)}")
     
 
 

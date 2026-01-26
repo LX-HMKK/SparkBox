@@ -216,7 +216,7 @@ class CanvasPoseDetection:
         
         return corners_list
     
-    def run(self, camera_id=1, confidence_threshold=0.25):
+    def run(self, camera_id=0, confidence_threshold=0.25):
         """
         运行实时识别（GPU加速版）
         """

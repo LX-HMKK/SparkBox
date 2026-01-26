@@ -67,11 +67,34 @@ class Voice2Text:
         print("Recording started...")
         self.is_recording = True
         self.frames = []
-        self.stream = self.p.open(format=self.format,
-                                  channels=self.channels,
-                                  rate=self.rate,
-                                  input=True,
-                                  frames_per_buffer=self.chunk)
+        
+        try:
+            # 尝试打开音频流，添加错误处理
+            self.stream = self.p.open(
+                format=self.format,
+                channels=self.channels,
+                rate=self.rate,
+                input=True,
+                frames_per_buffer=self.chunk
+            )
+        except Exception as e:
+            print(f"Warning: Failed to open stream with rate {self.rate}: {e}")
+            print("Trying with device default rate 44100...")
+            try:
+                # 尝试使用44100 Hz（RDK默认采样率）
+                self.rate = 44100
+                self.stream = self.p.open(
+                    format=self.format,
+                    channels=self.channels,
+                    rate=self.rate,
+                    input=True,
+                    frames_per_buffer=self.chunk
+                )
+                print(f"Successfully opened stream with rate {self.rate}")
+            except Exception as e2:
+                print(f"Error: Cannot open audio stream: {e2}")
+                self.is_recording = False
+                raise
 
     def stop_recording(self):
         """停止录音，关闭音频流并保存文件。"""
@@ -111,9 +134,10 @@ class Voice2Text:
             return None
 
         print("Transcribing...")
+        print(f"Using sample rate: {self.rate} Hz")
         recognition = Recognition(model='paraformer-realtime-v2',
                                   format='wav',
-                                  sample_rate=16000,
+                                  sample_rate=self.rate,  # 使用实际采样率
                                   callback=None)
         
         response = recognition.call(file=self.recorder_file)

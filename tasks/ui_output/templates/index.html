@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>创意沙盒 | Creative Sandbox</title>
     <link rel="stylesheet" href="/static/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap"
+        rel="stylesheet">
     <style>
         /* =========================================
            1. 全局配置
@@ -19,54 +21,87 @@
         }
 
         body {
-            margin: 0; padding: 0;
+            margin: 0;
+            padding: 0;
             background-color: var(--bg-dark);
             color: var(--text-blue);
             text-shadow: var(--text-glow);
             font-family: 'Share Tech Mono', monospace;
             height: 100vh;
             width: 100vw;
-            display: flex; justify-content: center; align-items: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             overflow: hidden;
         }
 
         /* 强制继承字体 */
-        input, button, p, li, span, div { font-family: 'Share Tech Mono', monospace; }
+        input,
+        button,
+        p,
+        li,
+        span,
+        div {
+            font-family: 'Share Tech Mono', monospace;
+        }
 
         /* =========================================
            2. 背景特效
            ========================================= */
         .bg-grid {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background:
                 linear-gradient(transparent 95%, rgba(0, 255, 255, 0.1) 50%),
                 linear-gradient(90deg, transparent 95%, rgba(0, 255, 255, 0.1) 50%);
             background-size: 30px 30px;
-            perspective: 1000px; transform-style: preserve-3d;
-            opacity: 0.5; z-index: -2;
+            perspective: 1000px;
+            transform-style: preserve-3d;
+            opacity: 0.5;
+            z-index: -2;
         }
+
         .scan-line {
-            position: absolute; top: 0; left: 0; width: 100%; height: 5px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
             background: rgba(0, 255, 255, 0.3);
             box-shadow: 0 0 10px var(--neon-blue);
             animation: scan 3s linear infinite;
-            z-index: -1; opacity: 0.3;
+            z-index: -1;
+            opacity: 0.3;
         }
-        @keyframes scan { 0% { top: -5%; } 100% { top: 105%; } }
+
+        @keyframes scan {
+            0% {
+                top: -5%;
+            }
+
+            100% {
+                top: 105%;
+            }
+        }
 
         /* =========================================
            3. 主容器 (布局修复版)
            ========================================= */
         .container {
             width: 1024px;
-            height: 580px; /* 稍微减小高度防止贴边 */
+            height: 580px;
+            /* 稍微减小高度防止贴边 */
             max-width: 95vw;
             max-height: 90vh;
             padding: 10px 20px;
             box-sizing: border-box;
-            display: flex; flex-direction: column;
+            display: flex;
+            flex-direction: column;
             position: relative;
-            background: radial-gradient(circle at center, rgba(0,40,80,0.2) 0%, rgba(0,10,20,0.9) 100%);
+            background: radial-gradient(circle at center, rgba(0, 40, 80, 0.2) 0%, rgba(0, 10, 20, 0.9) 100%);
             border: 2px solid var(--neon-blue);
             box-shadow: inset 0 0 30px rgba(0, 255, 255, 0.2), 0 0 20px rgba(0, 255, 255, 0.3);
         }
@@ -75,32 +110,69 @@
            4. HUD 顶部与底部
            ========================================= */
         .hud-header {
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             border-bottom: 1px solid rgba(0, 255, 255, 0.3);
-            flex-shrink: 0; height: 35px; font-size: 0.9rem;
-            margin-bottom: 5px; margin-top: -5px;
+            flex-shrink: 0;
+            height: 35px;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            margin-top: -5px;
         }
-        .status-box { letter-spacing: 2px; }
+
+        .status-box {
+            letter-spacing: 2px;
+        }
 
         .hud-footer {
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             border-top: 2px solid var(--neon-blue);
             background: rgba(0, 20, 40, 0.5);
-            flex-shrink: 0; height: 45px; font-size: 0.9rem;
+            flex-shrink: 0;
+            height: 45px;
+            font-size: 0.9rem;
         }
-        .page-indicators { display: flex; gap: 10px; }
-        .indicator {
-            width: 15px; height: 8px; background: rgba(0, 255, 255, 0.2);
-            transform: skewX(-20deg); transition: all 0.3s;
-        }
-        .indicator.active { background: var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); }
 
-        .nav-hint { display: flex; align-items: center; padding-top: 3px; }
-        .key-icon {
-            border: 1px solid var(--text-blue); padding: 2px 6px; margin: 0 5px;
-            border-radius: 3px; font-size: 0.8rem; text-shadow: none;
+        .page-indicators {
+            display: flex;
+            gap: 10px;
         }
-        .key-icon.red { color: #ff5555; border-color: #ff5555; }
+
+        .indicator {
+            width: 15px;
+            height: 8px;
+            background: rgba(0, 255, 255, 0.2);
+            transform: skewX(-20deg);
+            transition: all 0.3s;
+        }
+
+        .indicator.active {
+            background: var(--neon-blue);
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        .nav-hint {
+            display: flex;
+            align-items: center;
+            padding-top: 3px;
+        }
+
+        .key-icon {
+            border: 1px solid var(--text-blue);
+            padding: 2px 6px;
+            margin: 0 5px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            text-shadow: none;
+        }
+
+        .key-icon.red {
+            color: #ff5555;
+            border-color: #ff5555;
+        }
 
         /* =========================================
            5. 屏幕区域通用 (关键：使用 !important 控制显示)
@@ -114,6 +186,7 @@
             overflow: hidden;
             width: 100%;
         }
+
         .screen.active {
             display: flex !important;
             opacity: 1;
@@ -128,63 +201,254 @@
             justify-content: center;
             align-items: center;
         }
+
         .center-content {
             width: 85%;
             text-align: center;
-            display: flex; flex-direction: column; align-items: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         h1.glitch {
-            font-family: 'Orbitron', sans-serif; font-size: 5rem;
-            color: var(--neon-blue); text-shadow: 2px 2px 0px var(--neon-red);
-            margin: 0 0 2rem 0; letter-spacing: 5px; font-weight: bold;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4rem;
+            color: var(--neon-blue);
+            text-shadow: 2px 2px 0px var(--neon-red);
+            margin: 0 0 0.8rem 0;
+            letter-spacing: 5px;
+            font-weight: bold;
         }
+
         .subtitle {
-            max-width: 800px; margin: 0 auto 3rem auto; line-height: 1.6;
-            color: var(--text-blue); text-shadow: var(--text-glow); font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto 1rem auto;
+            line-height: 1.6;
+            color: var(--text-blue);
+            text-shadow: var(--text-glow);
+            font-size: 1rem;
         }
-        .highlight-text { color: #fff; font-weight: bold; text-shadow: 0 0 10px rgba(0, 255, 255, 0.5); }
+
+        .highlight-text {
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        /* IDEA提示文字 */
+        .idea-prompt {
+            font-size: 1.2rem;
+            color: var(--text-blue);
+            text-shadow: var(--text-glow);
+            margin-bottom: 1.5rem;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        /* 摄像头预览窗口 */
+        .camera-preview-container {
+            width: 100%;
+            max-width: 250px;
+            margin: 0 auto 1.5rem auto;
+            border: 2px solid var(--neon-blue);
+            background: rgba(0, 20, 40, 0.6);
+            box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.1), 0 0 15px rgba(0, 255, 255, 0.2);
+        }
+
+        .camera-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            background: rgba(0, 255, 255, 0.1);
+            border-bottom: 1px solid var(--neon-blue);
+        }
+
+        .camera-label {
+            font-size: 0.65rem;
+            color: var(--neon-blue);
+            letter-spacing: 2px;
+            font-weight: bold;
+        }
+
+        .camera-status {
+            font-size: 0.6rem;
+            background: var(--neon-blue);
+            color: #000;
+            padding: 2px 6px;
+            font-weight: bold;
+            text-shadow: none;
+            animation: pulse 2s infinite;
+        }
+
+        .camera-frame {
+            width: 100%;
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .camera-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* 拍照按钮 */
+        .snapshot-btn {
+            padding: 12px 40px;
+            background: transparent;
+            border: 2px solid var(--neon-blue);
+            color: var(--neon-blue);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1rem;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+        }
+
+        .snapshot-btn:hover {
+            background: var(--neon-blue);
+            color: #000;
+            text-shadow: none;
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+
+        .snapshot-btn:active {
+            transform: scale(0.98);
+        }
 
         /* 输入框 */
-        .input-wrapper { position: relative; width: 100%; max-width: 700px; margin: 0 auto; text-align: center; }
-        #user-input {
-            width: 100%; padding: 10px 0; background: transparent;
-            border: none; border-bottom: 2px solid var(--neon-blue); border-radius: 0;
-            color: #fff; text-align: center; font-size: 1.5rem; outline: none;
-            box-shadow: none; transition: all 0.3s;
+        .input-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin: 0 auto;
+            text-align: center;
         }
-        #user-input:focus { border-bottom-color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.8); }
-        #user-input::placeholder { color: rgba(160, 192, 255, 0.4); font-style: italic; }
+
+        #user-input {
+            width: 100%;
+            padding: 10px 0;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--neon-blue);
+            border-radius: 0;
+            color: #fff;
+            text-align: center;
+            font-size: 1.5rem;
+            outline: none;
+            box-shadow: none;
+            transition: all 0.3s;
+        }
+
+        #user-input:focus {
+            border-bottom-color: #fff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+
+        #user-input::placeholder {
+            color: rgba(160, 192, 255, 0.4);
+            font-style: italic;
+        }
 
         .keyboard-hint {
-            display: block; margin-top: 25px; color: var(--text-blue);
-            text-shadow: var(--text-glow); font-size: 0.9rem;
-            letter-spacing: 1px; animation: pulse 2s infinite;
+            display: block;
+            margin-top: 25px;
+            color: var(--text-blue);
+            text-shadow: var(--text-glow);
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            animation: pulse 2s infinite;
         }
-        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
 
         /* =========================================
            7. 加载页 (Loading Section)
            ========================================= */
-        #loading-section { justify-content: center; align-items: center; flex-direction: column; }
-        .loader-box { text-align: center; }
-        .spinner {
-            width: 80px; height: 80px; margin: 0 auto 30px auto;
-            border: 5px solid rgba(0, 255, 255, 0.2); border-top: 5px solid var(--neon-blue);
-            border-radius: 50%; animation: spin 1s linear infinite;
+        #loading-section {
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loading-text { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; margin-bottom: 10px; }
+
+        .loader-box {
+            text-align: center;
+        }
+
+        .spinner {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 30px auto;
+            border: 5px solid rgba(0, 255, 255, 0.2);
+            border-top: 5px solid var(--neon-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
 
         /* 终端日志 */
         .terminal-logs {
-            margin-top: 20px; height: 60px; overflow: hidden;
-            font-size: 0.85rem; color: var(--text-blue); opacity: 0.8;
-            text-align: center; display: flex; flex-direction: column; justify-content: flex-end;
+            margin-top: 20px;
+            height: 60px;
+            overflow: hidden;
+            font-size: 0.85rem;
+            color: var(--text-blue);
+            opacity: 0.8;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
         }
-        .log-line { display: block; margin-bottom: 2px; text-shadow: none; }
-        .log-line:last-child { color: #fff; text-shadow: 0 0 5px var(--neon-blue); font-weight: bold; }
-        .log-line::before { content: "> "; color: var(--neon-blue); }
+
+        .log-line {
+            display: block;
+            margin-bottom: 2px;
+            text-shadow: none;
+        }
+
+        .log-line:last-child {
+            color: #fff;
+            text-shadow: 0 0 5px var(--neon-blue);
+            font-weight: bold;
+        }
+
+        .log-line::before {
+            content: "> ";
+            color: var(--neon-blue);
+        }
 
         /* =========================================
            8. 结果页 (Result Section)
@@ -193,53 +457,183 @@
         /*    padding: 0px 20px 0 20px; display: flex; align-items: flex-start; justify-content: flex-start;*/
         /*}*/
         #result-section {
-        padding: 5px 20px 0 20px;   /* 顶部加一点点内边距 */
-        display: flex;
-        align-items: stretch;     /* 让内容撑满高度 */
-        justify-content: flex-start;
+            padding: 5px 20px 0 20px;
+            /* 顶部加一点点内边距 */
+            display: flex;
+            align-items: stretch;
+            /* 让内容撑满高度 */
+            justify-content: flex-start;
         }
 
-        .content-slider { width: 100%; height: 100%; display: flex; flex-direction: column; }
+        .content-slider {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
         .slide-content {
             width: 100%;
             height: 100%;
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;   /* 改为从顶部开始排 */
-            padding-bottom: 0;            /* 去掉底部撑高 */
+            justify-content: flex-start;
+            /* 改为从顶部开始排 */
+            padding-bottom: 0;
+            /* 去掉底部撑高 */
         }
 
-        .slide-header { border-bottom: 1px solid rgba(0, 255, 255, 0.3); margin-bottom: 6px; padding-bottom: 5px; flex-shrink: 0; margin-top: -8px; }
-        .project-title, .slide-header h2 { font-family: 'Orbitron', sans-serif; font-size: 1.8rem; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.5); margin: 2px 0 0 0; text-transform: uppercase; }
+        .slide-header {
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            margin-bottom: 6px;
+            padding-bottom: 5px;
+            flex-shrink: 0;
+            margin-top: -8px;
+        }
+
+        .project-title,
+        .slide-header h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            margin: 2px 0 0 0;
+            text-transform: uppercase;
+        }
 
         /* 列表通用 */
-        .list-slide ul, .steps-container { margin-top: -5px;flex: 1; overflow-y: auto; padding-right: 10px; scrollbar-width: thin; scrollbar-color: var(--neon-blue) rgba(0,0,0,0.3); }
-        .material-list { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 0; list-style: none; }
+        .list-slide ul,
+        .steps-container {
+            margin-top: -5px;
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--neon-blue) rgba(0, 0, 0, 0.3);
+        }
+
+        .material-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            padding: 0;
+            list-style: none;
+        }
+
         .material-list li {
-            background: rgba(0, 255, 255, 0.1); padding: 5px 10px;
-            border: 1px solid rgba(0, 255, 255, 0.2); font-size: 0.95rem; display: flex; justify-content: space-between;
+            background: rgba(0, 255, 255, 0.1);
+            padding: 5px 10px;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            font-size: 0.95rem;
+            display: flex;
+            justify-content: space-between;
         }
+
         .step-item {
-            display: flex; align-items: flex-start; margin-bottom: 8px;
-            background: rgba(0, 0, 0, 0.3); padding: 8px 10px; border-left: 2px solid rgba(0, 255, 255, 0.3);
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 10px;
+            border-left: 2px solid rgba(0, 255, 255, 0.3);
 
         }
-        .step-num { color: var(--neon-blue); font-size: 1.2rem; margin-right: 15px; font-weight: bold; }
-        .step-text { font-size: 0.9rem; line-height: 1.4; }
-        .outcome-list li { margin-bottom: 10px; padding-left: 30px; position: relative; line-height: 1.6; }
-        .outcome-list li::before { content: "✓"; color: var(--neon-blue); position: absolute; left: 0; font-weight: bold; }
 
-        .cover-slide .main-visual { flex: 1; display: flex; align-items: center; justify-content: center; margin-bottom: 5px; overflow: hidden; background: rgba(0,0,0,0.2); border: 1px solid rgba(0,255,255,0.1); }
-        .cover-slide .main-visual img { max-height: 100%; max-width: 100%; object-fit: contain; }
-        .cover-slide .core-info { display: flex; gap: 20px; background: rgba(0, 255, 255, 0.05); padding: 8px; border-left: 3px solid var(--neon-blue); flex-shrink: 0; margin-bottom: 5px; }
-        .info-item label { display: block; font-size: 0.7rem; color: var(--neon-blue); margin-bottom: 2px; }
-        .info-item p { margin: 0; font-size: 1rem; }
-        .info-item.compact { width: 140px; }
-        .stars { color: #ffd700; letter-spacing: 5px; text-shadow: none; }
+        .step-num {
+            color: var(--neon-blue);
+            font-size: 1.2rem;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+
+        .step-text {
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .outcome-list li {
+            margin-bottom: 10px;
+            padding-left: 30px;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .outcome-list li::before {
+            content: "✓";
+            color: var(--neon-blue);
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+
+        .cover-slide .main-visual {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(0, 255, 255, 0.1);
+        }
+
+        .cover-slide .main-visual img {
+            max-height: 100%;
+            max-width: 100%;
+            object-fit: contain;
+        }
+
+        .cover-slide .core-info {
+            display: flex;
+            gap: 20px;
+            background: rgba(0, 255, 255, 0.05);
+            padding: 8px;
+            border-left: 3px solid var(--neon-blue);
+            flex-shrink: 0;
+            margin-bottom: 5px;
+        }
+
+        .info-item label {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--neon-blue);
+            margin-bottom: 2px;
+        }
+
+        .info-item p {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .info-item.compact {
+            width: 140px;
+        }
+
+        .stars {
+            color: #ffd700;
+            letter-spacing: 5px;
+            text-shadow: none;
+        }
 
         /* 打字机光标 */
-        @keyframes blink-caret { from, to { border-color: transparent; } 50% { border-color: var(--neon-blue); } }
-        .typing-active { border-right: 2px solid var(--neon-blue); animation: blink-caret 0.75s step-end infinite; white-space: pre-wrap; display: inline-block; }
+        @keyframes blink-caret {
+
+            from,
+            to {
+                border-color: transparent;
+            }
+
+            50% {
+                border-color: var(--neon-blue);
+            }
+        }
+
+        .typing-active {
+            border-right: 2px solid var(--neon-blue);
+            animation: blink-caret 0.75s step-end infinite;
+            white-space: pre-wrap;
+            display: inline-block;
+        }
 
         /* =========================================
            9. 语音交互界面 (修复版)
@@ -252,73 +646,211 @@
         .voice-hud-layout {
             display: flex;
             flex: 1;
-            padding: 50px; /* 缩小边距 */
+            padding: 50px;
+            /* 缩小边距 */
             gap: 15px;
             height: calc(100% - 45px);
         }
 
         /* 左侧聊天记录 */
         .chat-console {
-            flex: 2.5; /* 增加宽度 */
+            flex: 2.5;
+            /* 增加宽度 */
             border: 1px solid var(--neon-blue);
             background: rgba(0, 20, 40, 0.8);
-            display: flex; flex-direction: column;
+            display: flex;
+            flex-direction: column;
             padding: 15px;
-            overflow: hidden; /* 禁止滚动 */
+            overflow: hidden;
+            /* 禁止滚动 */
             position: relative;
         }
+
         .console-header-row {
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             border-bottom: 1px dashed var(--neon-blue);
-            padding-bottom: 10px; margin-bottom: 10px; flex-shrink: 0;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            flex-shrink: 0;
         }
-        .console-title { color: var(--neon-blue); font-size: 0.8rem; letter-spacing: 2px; }
+
+        .console-title {
+            color: var(--neon-blue);
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+        }
+
         .page-status {
-            font-size: 0.8rem; background: var(--neon-blue); color: #000;
-            padding: 2px 6px; font-weight: bold; border-radius: 2px; text-shadow: none;
+            font-size: 0.8rem;
+            background: var(--neon-blue);
+            color: #000;
+            padding: 2px 6px;
+            font-weight: bold;
+            border-radius: 2px;
+            text-shadow: none;
         }
 
         .chat-history {
-            flex: 1; display: flex; flex-direction: column;
-            justify-content: flex-start; gap: 12px; overflow: hidden; /* 隐藏溢出 */
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 12px;
+            overflow: hidden;
+            /* 隐藏溢出 */
         }
 
         /* 消息样式 */
         .chat-msg {
-            display: flex; flex-direction: column; font-size: 0.9rem;
-            animation: fadeIn 0.3s ease; flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            font-size: 0.9rem;
+            animation: fadeIn 0.3s ease;
+            flex-shrink: 0;
         }
-        .chat-msg.user { align-items: flex-end; text-align: right; }
-        .chat-msg.ai { align-items: flex-start; text-align: left; }
-        .chat-msg .sender { font-size: 0.75rem; margin-bottom: 3px; opacity: 0.7; }
+
+        .chat-msg.user {
+            align-items: flex-end;
+            text-align: right;
+        }
+
+        .chat-msg.ai {
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .chat-msg .sender {
+            font-size: 0.75rem;
+            margin-bottom: 3px;
+            opacity: 0.7;
+        }
+
         .chat-msg .text {
-            padding: 8px 12px; border: 1px solid rgba(0, 255, 255, 0.3);
-            background: rgba(0, 255, 255, 0.05); max-width: 95%; line-height: 1.5;
+            padding: 8px 12px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            background: rgba(0, 255, 255, 0.05);
+            max-width: 95%;
+            line-height: 1.5;
         }
-        .chat-msg.user .text { border-color: rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.05); color: #fff; }
+
+        .chat-msg.user .text {
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
 
         /* 右侧声波 */
         .audio-visualizer-container {
-            flex: 1; border: 1px solid var(--neon-blue);
-            background: radial-gradient(circle, rgba(0,255,255,0.1) 0%, transparent 70%);
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            flex: 1;
+            border: 1px solid var(--neon-blue);
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.1) 0%, transparent 70%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
-        .voice-status-text { font-size: 2rem; font-family: 'Orbitron'; margin-top: 20px; }
-        .voice-instruction { margin-top: 10px; font-size: 0.8rem; opacity: 0.7; animation: pulse 2s infinite; }
 
-        .visualizer-ring { display: flex; align-items: center; justify-content: center; gap: 8px; height: 100px; }
-        .wave-bar { width: 10px; height: 20px; background-color: var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); transition: height 0.1s ease; }
+        .voice-status-text {
+            font-size: 2rem;
+            font-family: 'Orbitron';
+            margin-top: 20px;
+        }
 
-        .speaking .wave-bar { background-color: var(--neon-red); box-shadow: 0 0 15px var(--neon-red); animation: wave-bounce 0.5s infinite ease-in-out alternate; }
-        .speaking .voice-status-text { color: var(--neon-red); text-shadow: 0 0 10px var(--neon-red); }
-        @keyframes wave-bounce { 0% { height: 20px; } 100% { height: 80px; } }
-        .wave-bar:nth-child(1) { animation-delay: 0.0s; } .wave-bar:nth-child(2) { animation-delay: 0.1s; }
-        .wave-bar:nth-child(3) { animation-delay: 0.2s; } .wave-bar:nth-child(4) { animation-delay: 0.3s; }
-        .wave-bar:nth-child(5) { animation-delay: 0.2s; } .wave-bar:nth-child(6) { animation-delay: 0.1s; }
+        .voice-instruction {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            opacity: 0.7;
+            animation: pulse 2s infinite;
+        }
 
-        @media screen and (max-height: 620px) { h1.glitch { font-size: 3rem; } }
+        .visualizer-ring {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            height: 100px;
+        }
+
+        .wave-bar {
+            width: 10px;
+            height: 20px;
+            background-color: var(--neon-blue);
+            box-shadow: 0 0 10px var(--neon-blue);
+            transition: height 0.1s ease;
+        }
+
+        .speaking .wave-bar {
+            background-color: var(--neon-red);
+            box-shadow: 0 0 15px var(--neon-red);
+            animation: wave-bounce 0.5s infinite ease-in-out alternate;
+        }
+
+        .speaking .voice-status-text {
+            color: var(--neon-red);
+            text-shadow: 0 0 10px var(--neon-red);
+        }
+
+        @keyframes wave-bounce {
+            0% {
+                height: 20px;
+            }
+
+            100% {
+                height: 80px;
+            }
+        }
+
+        .wave-bar:nth-child(1) {
+            animation-delay: 0.0s;
+        }
+
+        .wave-bar:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .wave-bar:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .wave-bar:nth-child(4) {
+            animation-delay: 0.3s;
+        }
+
+        .wave-bar:nth-child(5) {
+            animation-delay: 0.2s;
+        }
+
+        .wave-bar:nth-child(6) {
+            animation-delay: 0.1s;
+        }
+
+        @media screen and (max-height: 620px) {
+            h1.glitch {
+                font-size: 2.5rem;
+            }
+
+            .subtitle {
+                font-size: 0.9rem;
+            }
+
+            .idea-prompt {
+                font-size: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .camera-preview-container {
+                margin: 0 auto 1rem auto;
+            }
+
+            .camera-frame {
+                height: 100px;
+            }
+        }
     </style>
 </head>
+
 <body>
 
     <div class="bg-grid"></div>
@@ -338,10 +870,23 @@
                     将脑海中抽象的想法转化为<span class="highlight-text">具象化的3D方案</span><br>
                     提供交互式制作导航，让每一个天马行空的创意在现实中落地
                 </p>
-                <div class="input-wrapper">
-                    <input type="text" id="user-input" placeholder="输入 Idea (如: 机械臂)..." autocomplete="off" autofocus>
-                    <div class="keyboard-hint">[ 按 Enter 键启动 ]</div>
+
+                <!-- IDEA提示文字 -->
+                <p class="idea-prompt">请输入你的IDEA</p>
+
+                <!-- 摄像头预览窗口 -->
+                <div class="camera-preview-container">
+                    <div class="camera-header">
+                        <span class="camera-label">/// CAMERA FEED ///</span>
+                        <span class="camera-status" id="camera-status">ACTIVE</span>
+                    </div>
+                    <div class="camera-frame">
+                        <img src="/video_feed" alt="Camera Feed" id="camera-feed">
+                    </div>
                 </div>
+
+                <!-- 拍照按钮 -->
+                <button class="snapshot-btn" id="snapshot-btn">拍照</button>
             </div>
         </section>
 
@@ -377,8 +922,12 @@
 
                 <div class="audio-visualizer-container">
                     <div class="visualizer-ring">
-                        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
-                        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
                     </div>
                     <div class="voice-status-text" id="voice-status">STANDBY</div>
                     <div class="voice-instruction">[ HOLD SPACE TO TALK ]</div>
@@ -399,4 +948,5 @@
 
     <script src="/static/script.js"></script>
 </body>
+
 </html>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -66,8 +67,15 @@
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
         }
 
         .status-text {
@@ -171,12 +179,14 @@
             .main-content {
                 grid-template-columns: 1fr;
             }
+
             .preview-card {
                 grid-column: span 1;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -204,10 +214,10 @@
         function formatTime(isoString) {
             if (!isoString) return '--';
             const date = new Date(isoString);
-            return date.toLocaleString('zh-CN', { 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit' 
+            return date.toLocaleString('zh-CN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
             });
         }
 
@@ -322,14 +332,14 @@
         function connectEventSource() {
             eventSource = new EventSource('/stream');
 
-            eventSource.onmessage = function(event) {
+            eventSource.onmessage = function (event) {
                 try {
                     const data = JSON.parse(event.data);
-                    
+
                     if (data.type === 'keepalive') return;
 
                     console.log('Received event:', data);
-                    
+
                     updateStatus(data.state, data.message, data.timestamp);
 
                     if (data.state === 'complete' && data.data) {
@@ -353,22 +363,22 @@
                 }
             };
 
-            eventSource.onerror = function(error) {
+            eventSource.onerror = function (error) {
                 console.error('EventSource error:', error);
                 updateStatus('error', '连接已断开，正在重连...', null);
-                
+
                 eventSource.close();
                 setTimeout(connectEventSource, 3000);
             };
 
-            eventSource.onopen = function() {
+            eventSource.onopen = function () {
                 console.log('EventSource connected');
                 updateStatus('ready', '已连接，等待分析...', new Date().toISOString());
             };
         }
 
         // Add camera live stream and snapshot button
-        (function injectCameraPanel(){
+        (function injectCameraPanel() {
             const container = document.querySelector('.container');
             const cameraPanel = document.createElement('div');
             cameraPanel.className = 'card';
@@ -392,7 +402,7 @@
             const statusEl = cameraPanel.querySelector('#snapshotStatus');
             btn.addEventListener('click', () => {
                 statusEl.textContent = '正在触发分析...';
-                fetch('/api/snapshot', {method: 'POST'})
+                fetch('/api/snapshot', { method: 'POST' })
                     .then(res => res.json())
                     .then(data => {
                         if (data.status === 'snapshot_triggered') {
@@ -412,7 +422,7 @@
 
             voiceStartBtn.addEventListener('click', () => {
                 statusEl.textContent = '正在开始录音...';
-                fetch('/api/voice/start', {method: 'POST'})
+                fetch('/api/voice/start', { method: 'POST' })
                     .then(res => res.json())
                     .then(data => {
                         if (data.status === 'recording_started' || data.status === 'already_recording') {
@@ -426,7 +436,7 @@
 
             voiceStopBtn.addEventListener('click', () => {
                 statusEl.textContent = '正在停止录音并分析...';
-                fetch('/api/voice/stop', {method: 'POST'})
+                fetch('/api/voice/stop', { method: 'POST' })
                     .then(res => res.json())
                     .then(data => {
                         if (data.status === 'recording_stopped' || data.status === 'not_recording') {
@@ -440,7 +450,7 @@
 
             quitBtn.addEventListener('click', () => {
                 statusEl.textContent = '正在退出程序...';
-                fetch('/api/quit', {method: 'POST'})
+                fetch('/api/quit', { method: 'POST' })
                     .then(res => res.json())
                     .then(data => {
                         statusEl.textContent = '程序退出中...';
@@ -473,4 +483,5 @@
         });
     </script>
 </body>
+
 </html>

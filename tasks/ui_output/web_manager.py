@@ -62,15 +62,17 @@ class WebManager:
             "data": data,
             "timestamp": datetime.now().isoformat()
         }
+        print(f"[WebManager] 推送事件: state={state}, message={message[:50] if message else None}...")
         self.latest_status = event_data
         self.event_queue.put(event_data)
+        print(f"[WebManager] 事件已放入队列，队列大小: {self.event_queue.qsize()}")
     
     def _setup_routes(self):
         """设置Flask路由"""
         
         @self.app.route('/')
         def index():
-            return render_template('sparkbox.html')
+            return render_template('index.html')
         
         @self.app.route('/old')
         def old_index():
@@ -98,7 +100,14 @@ class WebManager:
         @self.app.route('/api/snapshot', methods=['POST'])
         def api_snapshot():
             """触发快照分析"""
+            print("=" * 50)
+            print("📸 拍照API请求收到！")
+            print(f"  摄像头管理器: {self.camera_manager is not None}")
+            print(f"  AI管理器: {self.ai_manager is not None}")
+            print("=" * 50)
+            
             if not self.camera_manager or not self.ai_manager:
+                print("❌ 系统离线")
                 return jsonify({"error": "System offline"}), 503
             
             frame = self.camera_manager.get_latest_raw_frame()
@@ -125,7 +134,8 @@ class WebManager:
             try:
                 self.voice_handler.start_recording()
                 self.camera_manager.update_status("Recording...", is_recording=True)
-                self.push_event("processing", "Voice recording started")
+                # 使用专门的语音状态，避免与拍照processing冲突
+                self.push_event("voice_recording", "开始录音...")
                 return jsonify({"status": "recording_started"})
             except Exception as e:
                 return jsonify({"error": str(e)}), 500
@@ -185,27 +195,45 @@ class WebManager:
             def event_stream():
                 while True:
                     try:
-                        # Wait for new events with timeout
+                        # 首先获取一个事件（阻塞式等待）
                         event = self.event_queue.get(timeout=30)
                         yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+                        
+                        # 然后立即处理队列中所有剩余事件（非阻塞）
+                        while not self.event_queue.empty():
+                            try:
+                                next_event = self.event_queue.get_nowait()
+                                yield f"data: {json.dumps(next_event, ensure_ascii=False)}\n\n"
+                            except:
+                                break
+                                
                     except:
-                        # Send keepalive
+                        # 超时后发送keepalive
                         yield f"data: {{\"type\": \"keepalive\"}}\n\n"
             
             return Response(event_stream(), mimetype="text/event-stream")
     
     def _handle_snapshot_api(self, frame):
         """处理API快照请求"""
+        print("\n📸 处理快照API...")
+        print(f"  AI忙碌状态: {self.ai_manager.is_busy()}")
+        print(f"  应用实例存在: {self.app_instance is not None}")
+        print(f"  handle_snapshot方法: {hasattr(self.app_instance, 'handle_snapshot') if self.app_instance else False}")
+        
         if self.ai_manager.is_busy():
-            print("AI is busy, please wait.")
+            print("⚠️ AI正在忙碌，请稍候")
+            self.push_event("error", "AI正在处理中，请稍后再试")
             return
         
-        print("Snapshot triggered via API!")
+        print("✓ 快照触发成功，调用handle_snapshot")
         
         # This would need access to detector, logs_dir, temp_dir
         # For now, we'll delegate to the app instance
         if hasattr(self.app_instance, 'handle_snapshot'):
             self.app_instance.handle_snapshot(frame)
+        else:
+            print("❌ 应用实例没有handle_snapshot方法")
+            self.push_event("error", "系统配置错误")
     
     def start_server(self, debug=False, auto_open_browser=True):
         """启动Flask服务器"""

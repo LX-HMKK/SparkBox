@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 class CameraManager:
-    def __init__(self, camera_id=1, width=1280, height=720):
+    def __init__(self, camera_id=0, width=1280, height=720):
         """
         初始化摄像头管理器
         

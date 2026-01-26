@@ -82,10 +82,28 @@ class SolutionAgent:
 
     def chat(self, text: str) -> str:
         """
-        与AI进行对话（不涉及图像）
+        与AI进行自然对话（基于当前方案的上下文）
         """
         if not self.current_solution:
             return "请先分析一张图片，然后再开始对话。"
+
+        # 如果history为空，初始化系统提示词
+        if not self.history:
+            solution_str = json.dumps(self.current_solution, ensure_ascii=False, indent=2)
+            system_prompt = f"""你是一个友好的STEM教育导师，正在帮助学生完善他们的创意项目。
+
+当前学生的项目方案如下：
+{solution_str}
+
+请基于这个项目与学生进行自然对话。你可以：
+- 回答学生关于项目的问题
+- 提供建议和改进意见
+- 解释技术原理
+- 鼓励学生的创意
+
+保持回复简洁友好，像一个耐心的老师那样交流。如果学生只是打招呼，就友好地回应并询问有什么可以帮助的。"""
+            
+            self.history.append({"role": "system", "content": system_prompt})
 
         # 将用户输入添加到历史记录
         self.history.append({"role": "user", "content": text})
@@ -190,6 +208,7 @@ class SolutionAgent:
         """
         self.conversation_history = []
         self.current_solution = None
+        self.history = []  # 同时清除chat对话历史
         print(" [Memory] 对话记忆已清除")
     
     def get_conversation_history(self) -> list:

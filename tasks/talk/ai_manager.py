@@ -60,6 +60,9 @@ class AIManager:
         try:
             print("\n--- Starting AI Pipeline ---")
             
+            # 清除旧的对话记忆，开始新的分析
+            self.solution_agent.clear_memory()
+            
             # Step 1: Vision Analysis
             self._push_event("processing", "Vision Analysis...")
             vision_result = self.vision_agent.analyze(str(image_path))
@@ -141,37 +144,48 @@ class AIManager:
         """
         if self.is_processing:
             print("AI is busy, please wait.")
+            self._push_event("voice_error", "AI正在忙碌，请稍后再试")
             return
         
         if not self.last_vision_result:
             print("No vision result to chat about. Please analyze an image first.")
             self.status_message = "Chat Failed: No Context"
+            self._push_event("voice_error", "请先拍照分析图片")
             return
         
         self.is_processing = True
         self.status_message = "AI Thinking..."
         
+        # 推送用户消息到前端
+        self._push_event("voice_user", text, {"user_text": text})
+        self._push_event("voice_processing", "AI正在思考...")
+        
         try:
-            print("\n--- Running Chat AI with Context ---")
-            # Use generate with user_message to leverage memory
-            new_solution = self.solution_agent.generate(
-                vision_data=self.last_vision_result, 
-                user_message=text
-            )
+            print("\n--- Running Chat AI ---")
+            print(f"[User]: {text}")
             
-            if new_solution:
-                # Update the last solution with the new one
-                self.last_solution_result = new_solution
-                print(f"\n[AI Response]: New solution generated based on your feedback.")
-                print(json.dumps(new_solution, indent=2, ensure_ascii=False))
+            # 使用chat()方法进行自然对话（而不是generate()生成完整方案）
+            ai_response = self.solution_agent.chat(text)
+            
+            if ai_response:
+                print(f"\n[AI Response]: {ai_response}")
                 self.status_message = "AI Responded!"
+                
+                # 推送AI回复到前端
+                print("📤 正在推送voice_response事件...")
+                self._push_event("voice_response", ai_response, {
+                    "ai_text": ai_response
+                })
+                print("✅ voice_response事件已推送")
             else:
                 print("AI chat failed or returned no response.")
                 self.status_message = "AI Chat Failed"
+                self._push_event("voice_error", "AI回复失败")
         
         except Exception as e:
             print(f"Chat AI Error: {e}")
             self.status_message = "Error in Chat"
+            self._push_event("voice_error", f"对话错误: {str(e)}")
         finally:
             self.is_processing = False
     
@@ -185,7 +199,10 @@ class AIManager:
         """转录语音并进行对话"""
         if not self.voice_handler:
             print("Voice handler not available")
+            self._push_event("voice_error", "语音模块不可用")
             return
+        
+        self._push_event("voice_processing", "正在转录语音...")
         
         text = self.voice_handler.transcribe_audio()
         if text:
@@ -195,7 +212,7 @@ class AIManager:
         else:
             print("Voice transcription failed or empty.")
             self.status_message = "Voice: No text"
-            self._push_event("error", "Voice transcription failed")
+            self._push_event("voice_error", "语音识别失败，请重试")
     
     def transcribe_and_chat_async(self):
         """异步转录语音并进行对话"""
