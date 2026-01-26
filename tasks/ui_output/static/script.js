@@ -48,6 +48,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const RESULT_POLL_MAX_ATTEMPTS = 80;
     let lastResetAt = 0;
 
+    // ===============================
+    // 0. Kiosk 模式下的紧急退出辅助
+    // ===============================
+    document.addEventListener('keydown', (e) => {
+        // 改为 Shift + ESC 关闭窗口，避免与常规 ESC 操作冲突
+        if (e.key === 'Escape' && e.shiftKey) {
+            try {
+                window.close();
+            } catch(err) {
+                console.log("Close window blocked");
+            }
+        }
+    });
+
     // 聊天分页状态
     let chatData = [];
     let chatPage = 1;
@@ -117,6 +131,28 @@ document.addEventListener('DOMContentLoaded', () => {
             stopResultPolling();
             alert('处理失败: ' + event.message);
             setState(UI_STATES.INPUT);
+        }
+
+        // ========== 硬件控制事件 ==========
+        else if (event.state === 'control' && event.data) {
+             const action = event.data.action;
+             console.log('收到控制指令:', action);
+             if (action === 'next') {
+                 if (currentState === UI_STATES.RESULT) nextSlide();
+                 else if (currentState === UI_STATES.VOICE) nextChatPage();
+             } else if (action === 'prev') {
+                 if (currentState === UI_STATES.RESULT) prevSlide();
+                 else if (currentState === UI_STATES.VOICE) prevChatPage();
+             } else if (action === 'reset') {
+                 reset();
+             } else if (action === 'enter_voice') {
+                 if (currentState === UI_STATES.RESULT) {
+                     setState(UI_STATES.VOICE);
+                     if (chatData.length === 0) {
+                        addChatMessage('system', '语音模块已加载。按住按键说话。');
+                     }
+                 }
+             }
         }
 
         // ========== 语音交互事件 ==========

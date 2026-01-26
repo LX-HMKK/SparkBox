@@ -1,19 +1,19 @@
 capture:
   pin: 16
   mode: single
-  debounce: 300
+  debounce: 50
 
 video:
   pin: 18
   mode: continuous
-  debounce: 300
+  debounce: 50
 
 PGUP:
   pin: 22
   mode: single
-  debounce: 300
+  debounce: 50
 
 PGDN:
   pin: 36
   mode: single
-  debounce: 300
+  debounce: 50

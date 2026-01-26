@@ -4,6 +4,10 @@ Web管理器 - 负责Flask Web服务器和API管理
 import json
 import time
 import threading
+import sys
+import os
+import shutil
+import subprocess
 import webbrowser
 from datetime import datetime
 from queue import Queue
@@ -252,11 +256,32 @@ class WebManager:
         if auto_open_browser:
             # Auto-open browser
             def open_browser():
-                time.sleep(1)  # Wait for server to start
+                time.sleep(2)  # Wait for server to start
+                url = f"http://localhost:{self.port}"
                 try:
-                    webbrowser.open_new_tab(f"http://localhost:{self.port}")
-                except Exception:
-                    pass
+                    # 优先尝试使用 Kiosk 模式启动 (User specified deployment has chromium)
+                    browser_path = None
+                    if sys.platform.startswith('linux'):
+                        browser_path = shutil.which("chromium-browser") or shutil.which("chromium") or shutil.which("google-chrome")
+                    
+                    if browser_path:
+                        print(f"Launching Kiosk Mode Browser: {browser_path}")
+                        # --kiosk: 强制全屏且无法退出
+                        # --noerrdialogs: 避免错误弹窗
+                        # --disable-infobars: 隐藏提示条
+                        subprocess.Popen([
+                            browser_path, 
+                            "--kiosk", 
+                            "--noerrdialogs", 
+                            "--disable-infobars", 
+                            "--app=" + url
+                        ], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+                    else:
+                        print("Chromium not found. Falling back to default browser.")
+                        webbrowser.open_new_tab(url)
+                        
+                except Exception as e:
+                    print(f"Browser launch failed: {e}")
             
             threading.Thread(target=open_browser, daemon=True).start()
         

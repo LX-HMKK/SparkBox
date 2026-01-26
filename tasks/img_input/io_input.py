@@ -29,15 +29,28 @@ class GPIOButton:
         GPIO.setmode(GPIO.BOARD)
 
         # 根据active_low设置触发边缘
+        pud_state = None
         if active_low:
-            # Hobot.GPIO 可能不支持软件设置上下拉，移除 PUD_UP
             edge_to_detect = GPIO.FALLING
+            if hasattr(GPIO, 'PUD_UP'):
+                pud_state = GPIO.PUD_UP
         else:
-            # Hobot.GPIO 可能不支持软件设置上下拉，移除 PUD_DOWN
             edge_to_detect = GPIO.RISING
+            if hasattr(GPIO, 'PUD_DOWN'):
+                pud_state = GPIO.PUD_DOWN
 
-        # 移除 pull_up_down 参数
-        GPIO.setup(self.input_pin, GPIO.IN)
+        # 尝试启用内部上下拉电阻
+        # 如果硬件悬空且未启用内部电阻，电平恢复会非常缓慢（导致复位延迟）
+        try:
+            if pud_state is not None:
+                GPIO.setup(self.input_pin, GPIO.IN, pull_up_down=pud_state)
+            else:
+                GPIO.setup(self.input_pin, GPIO.IN)
+        except Exception as e:
+            print(f"警告: 无法为管脚 {self.input_pin} 设置内部上下拉电阻 ({e})。如果未接外部电阻，可能会导致电平漂移。")
+            # 回退到普通输入模式
+            GPIO.setup(self.input_pin, GPIO.IN)
+            
         GPIO.add_event_detect(self.input_pin, edge_to_detect, callback=self._press_callback, bouncetime=bouncetime)
         # print(f"GPIO按键在管脚 {self.input_pin} 上已初始化。") # 在main函数中统一打印
 
@@ -47,10 +60,9 @@ class GPIOButton:
         if current_time - self.last_press_time < self.cooldown:
             return
 
-        # 简单的噪声过滤：再次检查电平状态
-        # 如果是瞬间干扰，此时电平可能已经恢复
-        if not self.is_pressed():
-            return
+        # 移除了 self.is_pressed() 的二次检查
+        # 原始代码中如果有此检查，快速按键（Tap）时，当代码运行到这里电平可能已恢复，导致按键丢失。
+        # 既然已经触发了边沿中断，就应该认为发生了事件。
 
         self.last_press_time = current_time
         self._pressed_event = True
@@ -217,8 +229,8 @@ def main():
                     print(f"错误: 检测 '{name}' 出错: {e}")
                     del single_shot_pins[name]
             
-            # 短暂休眠以降低CPU使用率
-            time.sleep(0.05)
+            # 短暂休眠 (0.01s = 10ms)，提高轮询分辨率，使"复位"检测更灵敏
+            time.sleep(0.01)
 
     except Exception as e:
         print(f"程序主循环发生未预料的错误: {e}")

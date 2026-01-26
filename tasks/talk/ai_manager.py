@@ -37,6 +37,7 @@ class AIManager:
         self.last_vision_result = None
         self.last_solution_result = None
         self.last_complete_result = None
+        self.has_result = False  # 新增状态标志：当前是否已有有效结果显示中
         
         # 事件回调
         self.event_callback = None
@@ -56,6 +57,7 @@ class AIManager:
         self.last_vision_result = None
         self.last_solution_result = None
         self.last_complete_result = None
+        self.has_result = False
         self.status_message = "Ready"
         self.is_processing = False
     
@@ -77,6 +79,38 @@ class AIManager:
     def _start_new_log_session(self):
         """开启新的对话日志文件（一次对话对应一个文件）"""
         self.current_log_path = self._get_log_file_path()
+
+    def _rename_log_file_by_title(self, title: str):
+        """根据项目标题重命名日志文件，方便人类阅读"""
+        if not self.current_log_path or not self.current_log_path.exists():
+            return
+        
+        if not title:
+            return
+
+        try:
+            # 清理非法字符
+            safe_title = "".join([c for c in title if c.isalnum() or c in (' ', '-', '_', '.')]).strip()
+            if not safe_title:
+                return
+            
+            # 保留原有的时间戳前缀，替换后面的UUID
+            # 原格式: YYYY-MM-DD_HHMMSS_UUID.json
+            # 新格式: YYYY-MM-DD_HHMMSS_Title.json
+            original_name = self.current_log_path.name
+            parts = original_name.split('_')
+            
+            if len(parts) >= 2:
+                # 拼接前两部分 (Date, Time)
+                prefix = f"{parts[0]}_{parts[1]}"
+                new_filename = f"{prefix}_{safe_title}.json"
+                new_path = self.log_dir / new_filename
+                
+                self.current_log_path.rename(new_path)
+                self.current_log_path = new_path
+                print(f"[AIManager] Log file renamed to: {new_filename}")
+        except Exception as e:
+            print(f"[AIManager] Rename log file failed: {e}")
 
     def _append_log_entries(self, entries: list):
         """追加日志条目，格式参照 ai_logs 日志"""
@@ -231,6 +265,10 @@ class AIManager:
             # Save solution result
             self.last_solution_result = solution_result
 
+            # 尝试根据方案标题重命名日志文件
+            idea_name = solution_result.get('project_name') or solution_result.get('project_title')
+            self._rename_log_file_by_title(idea_name)
+
             # 记录方案文本日志
             formatted_text = self._format_solution_text(solution_result)
             self._log_text("ai", formatted_text)
@@ -266,6 +304,7 @@ class AIManager:
             
             # Save complete result
             self.last_complete_result = final_output
+            self.has_result = True
             
             print("\n=== Final Result ===")
             print(json.dumps(final_output, indent=2, ensure_ascii=False))
