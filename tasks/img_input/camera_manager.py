@@ -120,8 +120,13 @@ class CameraManager:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"capture_{timestamp}.jpg"
         
+               
+        # Create capture subdirectory
+        capture_dir = logs_dir / "capture"
+        capture_dir.mkdir(parents=True, exist_ok=True)
+        
         # Save to logs (permanent)
-        log_path = logs_dir / filename
+        log_path = capture_dir / filename
         cv2.imwrite(str(log_path), warped_frame)
         print(f"Saved to logs: {log_path}")
         
