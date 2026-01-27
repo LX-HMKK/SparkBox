@@ -248,7 +248,7 @@
         /* 摄像头预览窗口 */
         .camera-preview-container {
             width: 100%;
-            max-width: 250px;
+            max-width: 380px;
             margin: 0 auto 1.5rem auto;
             border: 2px solid var(--neon-blue);
             background: rgba(0, 20, 40, 0.6);
@@ -283,7 +283,7 @@
 
         .camera-frame {
             width: 100%;
-            height: 140px;
+            height: 214px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -295,34 +295,10 @@
         .camera-frame img {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: cover;
         }
 
-        /* 拍照按钮 */
-        .snapshot-btn {
-            padding: 12px 40px;
-            background: transparent;
-            border: 2px solid var(--neon-blue);
-            color: var(--neon-blue);
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 1rem;
-            letter-spacing: 2px;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
-        }
-
-        .snapshot-btn:hover {
-            background: var(--neon-blue);
-            color: #000;
-            text-shadow: none;
-            box-shadow: 0 0 20px var(--neon-blue);
-        }
-
-        .snapshot-btn:active {
-            transform: scale(0.98);
-        }
+        /* 拍照功能已迁移至键盘快捷键 [A] */
 
         /* 输入框 */
         .input-wrapper {
@@ -575,12 +551,24 @@
             overflow: hidden;
             background: rgba(0, 0, 0, 0.2);
             border: 1px solid rgba(0, 255, 255, 0.1);
+            position: relative;
         }
 
         .cover-slide .main-visual img {
             max-height: 100%;
             max-width: 100%;
             object-fit: contain;
+            transition: opacity 0.3s ease;
+        }
+
+        .cover-slide .main-visual img[data-retry-count] {
+            opacity: 0.85;
+        }
+
+        /* 占位符图片样式 */
+        .cover-slide .main-visual img[src*="placeholder"] {
+            opacity: 0.6;
+            filter: brightness(0.8);
         }
 
         .cover-slide .core-info {
@@ -842,10 +830,11 @@
 
             .camera-preview-container {
                 margin: 0 auto 1rem auto;
+                max-width: 300px;
             }
 
             .camera-frame {
-                height: 100px;
+                height: 169px;
             }
         }
     </style>
@@ -884,9 +873,6 @@
                         <img src="/video_feed" alt="Camera Feed" id="camera-feed">
                     </div>
                 </div>
-
-                <!-- 拍照按钮 -->
-                <button class="snapshot-btn" id="snapshot-btn">拍照</button>
             </div>
         </section>
 

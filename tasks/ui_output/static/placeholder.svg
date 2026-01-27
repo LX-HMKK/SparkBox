@@ -1,0 +1,21 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#020a12"/>
+  <rect x="1" y="1" width="398" height="298" fill="none" stroke="#0ff" stroke-width="2" stroke-dasharray="10,5"/>
+  
+  <!-- 图标 -->
+  <circle cx="200" cy="120" r="40" fill="none" stroke="#0ff" stroke-width="2" opacity="0.5"/>
+  <path d="M 180 120 L 200 100 L 220 120 L 200 140 Z" fill="#0ff" opacity="0.3"/>
+  
+  <!-- 文字 -->
+  <text x="200" y="180" font-family="monospace" font-size="16" fill="#0ff" text-anchor="middle" opacity="0.8">
+    IMAGE LOADING...
+  </text>
+  <text x="200" y="200" font-family="monospace" font-size="12" fill="#a0c0ff" text-anchor="middle" opacity="0.6">
+    正在生成预览图
+  </text>
+  
+  <!-- 扫描线动画 -->
+  <rect x="0" y="0" width="400" height="2" fill="#0ff" opacity="0.5">
+    <animate attributeName="y" from="-2" to="300" dur="2s" repeatCount="indefinite"/>
+  </rect>
+</svg>

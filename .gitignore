@@ -6,3 +6,4 @@ labels_pose
 __pycache__/
 .trae
 logs
+recorder.wav

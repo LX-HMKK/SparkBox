@@ -9,10 +9,12 @@ import os
 import shutil
 import subprocess
 import webbrowser
+import urllib.request
 from datetime import datetime
 from queue import Queue
-from flask import Flask, render_template, Response, jsonify, request
+from flask import Flask, render_template, Response, jsonify, request, send_file
 import cv2
+from io import BytesIO
 
 
 class WebManager:
@@ -175,11 +177,46 @@ class WebManager:
         
         @self.app.route('/api/quit', methods=['POST'])
         def api_quit():
-            """优雅停止主循环"""
-            if not self.app_instance:
-                return jsonify({"error": "System offline"}), 503
-            self.app_instance.running = False
-            return jsonify({"status": "stopping"})
+            """优雅停止程序并释放资源"""
+            print("\n" + "="*50)
+            print("收到退出请求，开始清理资源...")
+            print("="*50)
+            
+            def shutdown():
+                """延迟关闭服务器和程序"""
+                time.sleep(1)  # 等待响应发送完成
+                
+                # 停止主循环
+                if self.app_instance:
+                    print("✓ 停止主循环")
+                    self.app_instance.running = False
+                
+                # 清理摄像头
+                if self.camera_manager:
+                    print("✓ 释放摄像头")
+                    self.camera_manager.cleanup()
+                
+                # 清理语音模块
+                if self.voice_handler:
+                    print("✓ 关闭语音模块")
+                    self.voice_handler.close()
+                
+                # 停止Flask服务器
+                print("✓ 停止Web服务器")
+                func = request.environ.get('werkzeug.server.shutdown')
+                if func is None:
+                    # Werkzeug 2.1+ 需要使用不同的方法
+                    print("  使用系统退出")
+                    os._exit(0)
+                else:
+                    func()
+                
+                print("✓ 程序退出完成")
+            
+            # 在后台线程执行清理，避免阻塞响应
+            threading.Thread(target=shutdown, daemon=True).start()
+            
+            return jsonify({"status": "shutting_down", "message": "系统正在关闭..."})
         
         @self.app.route('/video_feed')
         def video_feed():
@@ -228,6 +265,40 @@ class WebManager:
                         yield f"data: {{\"type\": \"keepalive\"}}\n\n"
             
             return Response(event_stream(), mimetype="text/event-stream")
+    
+        @self.app.route('/api/proxy_image')
+        def proxy_image():
+            """代理图片请求，解决CORS问题和403错误"""
+            url = request.args.get('url')
+            if not url:
+                return jsonify({"error": "Missing url parameter"}), 400
+            
+            try:
+                # 添加浏览器User-Agent避免403
+                req = urllib.request.Request(
+                    url,
+                    headers={
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                        'Referer': 'https://image.pollinations.ai/'
+                    }
+                )
+                
+                with urllib.request.urlopen(req, timeout=30) as response:
+                    image_data = response.read()
+                    content_type = response.headers.get('Content-Type', 'image/jpeg')
+                    
+                    return Response(image_data, mimetype=content_type)
+                    
+            except Exception as e:
+                print(f"[WebManager] 图片代理失败: {e}")
+                # 返回占位符SVG
+                try:
+                    placeholder_path = os.path.join(self.app.static_folder, 'placeholder.svg')
+                    if os.path.exists(placeholder_path):
+                        return send_file(placeholder_path, mimetype='image/svg+xml')
+                except:
+                    pass
+                return jsonify({"error": str(e)}), 500
     
     def _handle_snapshot_api(self, frame):
         """处理API快照请求"""

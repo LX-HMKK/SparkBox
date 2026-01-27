@@ -100,7 +100,7 @@ class SparkBoxApp:
     def _init_managers(self):
         """初始化各个管理器"""
         # 初始化摄像头管理器
-        self.camera_manager = CameraManager(camera_id=0, width=1280, height=720)
+        self.camera_manager = CameraManager(camera_id=1, width=1280, height=720)
         
         # 初始化AI管理器
         self.ai_manager = AIManager(
@@ -187,7 +187,14 @@ class SparkBoxApp:
             return
         
         print("\n=== SparkBox System Ready (Web Mode) ===")
-        print("Use the web UI to trigger actions.")
+        print("Use the web UI or keyboard to trigger actions.")
+        print("Keyboard Controls:")
+        print("  [A] - Take snapshot and analyze")
+        print("  [V] - Enter voice mode (from result view)")
+        print("  [Space] - Record voice (in voice mode)")
+        print("  [Arrow Keys] - Navigate results/chat")
+        print("  [ESC] - Reset/Go back")
+        print("  [Shift+ESC] - Exit program")
         print("===============================================\n")
         
         try:
@@ -224,10 +231,32 @@ class SparkBoxApp:
         except KeyboardInterrupt:
             print("\nInterrupted by user.")
         finally:
-            self.camera_manager.cleanup()
+            print("\n" + "="*50)
+            print("正在清理资源...")
+            print("="*50)
+            
+            # 清理AI管理器
+            if hasattr(self, 'ai_manager'):
+                print("✓ 停止AI任务")
+                self.ai_manager.cleanup()
+            
+            # 清理摄像头
+            if hasattr(self, 'camera_manager'):
+                print("✓ 释放摄像头")
+                self.camera_manager.cleanup()
+            
+            # 清理语音模块
             if self.voice:
+                print("✓ 关闭语音模块")
                 self.voice.close()
-            print("Application cleaned up.")
+            
+            # 清理临时文件
+            print("✓ 清理临时文件")
+            self.cleanup_temp()
+            
+            print("="*50)
+            print("Application cleaned up. Goodbye!")
+            print("="*50)
 
 # Flask Web Server code moved to WebManager
 

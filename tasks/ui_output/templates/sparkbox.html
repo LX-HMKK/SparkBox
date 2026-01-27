@@ -386,9 +386,8 @@
             cameraPanel.innerHTML = `
                 <h2 class="card-title">📷 实时摄像头</h2>
                 <div class="card-content">
-                    <img id="cameraStream" src="/video_feed" alt="Camera" class="preview-image" style="max-height: 320px;">
+                    <img id="cameraStream" src="/video_feed" alt="Camera" class="preview-image" style="max-height: 480px;">
                     <div style="display:flex; gap:10px; margin-top:10px;">
-                        <button id="snapshotBtn" style="padding:8px 14px; background:#00d9ff; color:#0a0e27; border:none; border-radius:6px; cursor:pointer;">拍照并分析</button>
                         <button id="voiceStartBtn" style="padding:8px 14px; background:#00ff88; color:#0a0e27; border:none; border-radius:6px; cursor:pointer;">开始录音</button>
                         <button id="voiceStopBtn" style="padding:8px 14px; background:#ffae00; color:#0a0e27; border:none; border-radius:6px; cursor:pointer;">停止录音并分析</button>
                         <button id="quitBtn" style="padding:8px 14px; background:#ff0055; color:#fff; border:none; border-radius:6px; cursor:pointer;">退出程序</button>
@@ -398,23 +397,7 @@
             `;
             container.appendChild(cameraPanel);
 
-            const btn = cameraPanel.querySelector('#snapshotBtn');
             const statusEl = cameraPanel.querySelector('#snapshotStatus');
-            btn.addEventListener('click', () => {
-                statusEl.textContent = '正在触发分析...';
-                fetch('/api/snapshot', { method: 'POST' })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.status === 'snapshot_triggered') {
-                            statusEl.textContent = '已触发分析，请稍候...';
-                        } else {
-                            statusEl.textContent = '触发失败：' + (data.error || '未知错误');
-                        }
-                    })
-                    .catch(err => {
-                        statusEl.textContent = '触发失败：网络错误';
-                    });
-            });
 
             const voiceStartBtn = cameraPanel.querySelector('#voiceStartBtn');
             const voiceStopBtn = cameraPanel.querySelector('#voiceStopBtn');

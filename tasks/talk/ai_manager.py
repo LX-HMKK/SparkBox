@@ -5,6 +5,7 @@ import threading
 import json
 import os
 import shutil
+import time
 from datetime import datetime
 from pathlib import Path
 import urllib.request
@@ -60,6 +61,27 @@ class AIManager:
         self.has_result = False
         self.status_message = "Ready"
         self.is_processing = False
+    
+    def cleanup(self):
+        """清理AI管理器资源"""
+        print("[AIManager] 清理资源...")
+        # 如果正在处理，等待完成或强制中断
+        if self.is_processing:
+            print("[AIManager] 等待AI任务完成...")
+            # 这里可以添加超时等待逻辑
+            max_wait = 3  # 最多等待3秒
+            waited = 0
+            while self.is_processing and waited < max_wait:
+                time.sleep(0.5)
+                waited += 0.5
+            
+            if self.is_processing:
+                print("[AIManager] AI任务超时，强制中断")
+                self.is_processing = False
+        
+        # 清理结果
+        self.reset_results()
+        print("[AIManager] 清理完成")
     
     def set_event_callback(self, callback):
         """设置事件回调函数"""
@@ -176,7 +198,14 @@ class AIManager:
             filename = f"generated_{ts}.jpg"
             dest_path = self.log_images_dir / filename
 
-            with urllib.request.urlopen(url, timeout=20) as resp:
+            # 添加User-Agent避免403错误
+            req = urllib.request.Request(
+                url,
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                }
+            )
+            with urllib.request.urlopen(req, timeout=20) as resp:
                 content = resp.read()
                 with open(dest_path, "wb") as f:
                     f.write(content)
@@ -325,9 +354,17 @@ class AIManager:
         def _fetch():
             try:
                 print(f"[AIManager] Prefetch preview: {url}")
+                # 添加User-Agent避免403错误
+                req = urllib.request.Request(
+                    url,
+                    headers={
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                    }
+                )
                 # 只读取少量数据即可触发远端生成/缓存
-                with urllib.request.urlopen(url, timeout=10) as resp:
-                    resp.read(1024)
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    resp.read(2048)  # 读取更多数据确保图片开始生成
+                print(f"[AIManager] Prefetch success")
             except Exception as e:
                 print(f"[AIManager] Prefetch failed: {e}")
 

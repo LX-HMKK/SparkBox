@@ -27,9 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
         sysLogs: document.getElementById('sys-logs'),
         clock: document.getElementById('clock'), // Added clock
 
-        // 快照按钮
-        snapshotBtn: document.getElementById('snapshot-btn'),
-
         // 语音相关
         chatHistory: document.getElementById('chat-history'),
         chatPageStatus: document.getElementById('chat-page-status'),
@@ -52,13 +49,66 @@ document.addEventListener('DOMContentLoaded', () => {
     // 0. Kiosk 模式下的紧急退出辅助
     // ===============================
     document.addEventListener('keydown', (e) => {
-        // 改为 Shift + ESC 关闭窗口，避免与常规 ESC 操作冲突
+        // Shift + ESC 直接退出程序（不需要二次确认）
         if (e.key === 'Escape' && e.shiftKey) {
-            try {
-                window.close();
-            } catch(err) {
-                console.log("Close window blocked");
-            }
+            e.preventDefault();
+            console.log('触发程序退出...');
+            
+            // 直接显示退出动画
+            document.body.innerHTML = `
+                <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: #020a12; color: #0ff; font-family: 'Orbitron', monospace; flex-direction: column; animation: fadeIn 0.5s ease;">
+                    <div style="text-align: center; animation: slideDown 0.8s ease;">
+                        <h1 style="font-size: 3.5rem; margin-bottom: 30px; text-shadow: 0 0 20px #0ff;">SYSTEM SHUTDOWN</h1>
+                        <div style="width: 300px; height: 3px; background: linear-gradient(90deg, transparent, #0ff, transparent); margin: 0 auto 30px; animation: pulse 1.5s infinite;"></div>
+                        <p style="font-size: 1.3rem; opacity: 0.8; margin-bottom: 10px;">正在安全关闭系统...</p>
+                        <p style="font-size: 1rem; opacity: 0.6;">释放资源中</p>
+                        <p style="font-size: 0.85rem; margin-top: 50px; opacity: 0.4;">SparkBox Creative Sandbox © 2026</p>
+                    </div>
+                </div>
+                <style>
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    @keyframes slideDown {
+                        from { transform: translateY(-30px); opacity: 0; }
+                        to { transform: translateY(0); opacity: 1; }
+                    }
+                    @keyframes pulse {
+                        0%, 100% { opacity: 0.3; }
+                        50% { opacity: 1; }
+                    }
+                </style>
+            `;
+            
+            // 调用后端API停止程序
+            fetch('/api/quit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log('退出指令已发送:', data);
+                // 延迟关闭窗口，确保后端有时间清理
+                setTimeout(() => {
+                    try {
+                        window.close();
+                    } catch(err) {
+                        console.log('窗口关闭被阻止，已显示关闭提示');
+                    }
+                }, 1500);
+            })
+            .catch(err => {
+                console.error('退出请求失败:', err);
+                // 即使API失败也尝试关闭窗口
+                setTimeout(() => {
+                    try {
+                        window.close();
+                    } catch(e) {
+                        document.body.innerHTML += '<p style="color: #ff0055; text-align: center; margin-top: 20px;">请手动关闭窗口或按 Ctrl+C</p>';
+                    }
+                }, 1000);
+            });
         }
     });
 
@@ -195,8 +245,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 初始化完成日志
     console.log('=== SparkBox UI 初始化完成 ===');
+    console.log('键盘控制提示:');
+    console.log('  [A] - 拍照并分析');
+    console.log('  [V] - 进入语音模式');
+    console.log('  [Space] - 录音 (语音模式)');
+    console.log('  [Arrow Keys] - 导航');
+    console.log('  [ESC] - 重置');
     console.log('DOM元素检查:', {
-        snapshotBtn: dom.snapshotBtn ? '✓ 已找到' : '✗ 未找到',
         inputSection: dom.inputSection ? '✓' : '✗',
         loadingSection: dom.loadingSection ? '✓' : '✗',
         resultSection: dom.resultSection ? '✓' : '✗'
@@ -317,6 +372,40 @@ document.addEventListener('DOMContentLoaded', () => {
     */
 
     document.addEventListener('keydown', (e) => {
+        // Snapshot (Input state)
+        if (currentState === UI_STATES.INPUT && (e.key === 'a' || e.key === 'A')) {
+            console.log('快照键盘快捷键被触发');
+            
+            // 立即切换到加载状态
+            setState(UI_STATES.LOADING);
+            startSystemLogs();
+
+            // 调用API触发快照
+            fetch('/api/snapshot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    console.log('快照API响应:', data);
+                    if (data.status === 'snapshot_triggered') {
+                        console.log('快照已触发，等待AI处理完成...');
+                    } else if (data.error) {
+                        console.error('快照失败:', data.error);
+                        clearInterval(logInterval);
+                        alert('拍照失败: ' + data.error);
+                        setState(UI_STATES.INPUT);
+                    }
+                })
+                .catch(err => {
+                    console.error('快照请求失败:', err);
+                    clearInterval(logInterval);
+                    alert('拍照请求失败，请检查网络连接');
+                    setState(UI_STATES.INPUT);
+                });
+            return;
+        }
+        
         // Result -> Voice
         if (currentState === UI_STATES.RESULT && (e.key === 'v' || e.key === 'V')) {
             setState(UI_STATES.VOICE);
@@ -369,47 +458,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 拍照按钮点击事件
-    if (dom.snapshotBtn) {
-        dom.snapshotBtn.addEventListener('click', () => {
-            console.log('拍照按钮被点击');
-
-            // 立即切换到加载状态
-            setState(UI_STATES.LOADING);
-            startSystemLogs();
-
-            // 调用API触发快照
-            fetch('/api/snapshot', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            })
-                .then(res => res.json())
-                .then(data => {
-                    console.log('快照API响应:', data);
-                    if (data.status === 'snapshot_triggered') {
-                        // 成功触发，等待SSE事件推送结果
-                        console.log('快照已触发，等待AI处理完成...');
-                    } else if (data.error) {
-                        console.error('快照失败:', data.error);
-                        clearInterval(logInterval);
-                        alert('拍照失败: ' + data.error);
-                        setState(UI_STATES.INPUT);
-                    }
-                })
-                .catch(err => {
-                    console.error('快照请求失败:', err);
-                    clearInterval(logInterval);
-                    alert('拍照请求失败，请检查网络连接');
-                    setState(UI_STATES.INPUT);
-                });
-        });
-    } else {
-        console.error('✗ 拍照按钮未找到！检查HTML中是否有 id="snapshot-btn"');
-    }
-
-    if (dom.snapshotBtn) {
-        console.log('✓ 拍照按钮事件已绑定');
-    }
+    // 快照功能已迁移至键盘快捷键 [A] - 见上面的 keydown 事件处理
+    console.log('✓ 快照功能已配置为键盘快捷键 [A] (按键模式)');
 
 
     // ===============================
@@ -671,10 +721,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 提取solution数据（后端返回的是嵌套结构）
         const solution = data.solution || data;
-        // 添加时间戳参数强制刷新图片，避免缓存问题
+        
+        // 处理预览图URL - 使用代理避免CORS和403问题
+        let previewBase = data.preview_url || solution.preview_url || data.preview_image || '/static/placeholder.svg';
+        let preview = previewBase;
+        
+        // 如果是外部URL，使用代理
+        if (previewBase.startsWith('http://') || previewBase.startsWith('https://')) {
+            preview = `/api/proxy_image?url=${encodeURIComponent(previewBase)}`;
+        }
+        
+        // 添加时间戳强制刷新
         const timestamp = Date.now();
-        let previewBase = data.preview_url || solution.preview_url || data.preview_image || '/static/placeholder.png';
-        const preview = previewBase.includes('?') ? `${previewBase}&_t=${timestamp}` : `${previewBase}?_t=${timestamp}`;
+        preview = preview.includes('?') ? `${preview}&_t=${timestamp}` : `${preview}?_t=${timestamp}`;
 
         // 1. Cover
         slidesContent.push({
@@ -685,7 +744,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h2 class="project-title">${solution.project_name || data.project_name || 'Unknown'}</h2>
                 </div>
                 <div class="main-visual">
-                    <img src="${preview}" alt="Preview">
+                    <img src="${preview}" alt="Preview" 
+                         data-original-url="${previewBase}"
+                         onerror="handleImageError(this)" 
+                         onload="handleImageLoaded(this)">
                 </div>
                 <div class="core-info">
                     <div class="info-item">
@@ -853,6 +915,52 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     setInterval(updateClock, 1000);
     updateClock();
+
+    // ===============================
+    // 11. 图片加载错误处理
+    // ===============================
+    window.handleImageError = function(img) {
+        const originalUrl = img.dataset.originalUrl;
+        console.warn('图片加载失败，尝试重试...', originalUrl);
+        
+        // 避免无限重试
+        const retryCount = parseInt(img.dataset.retryCount || '0');
+        if (retryCount >= 3) {
+            console.error('图片加载失败次数过多，显示占位符');
+            img.src = '/static/placeholder.svg';
+            img.alt = '图片加载失败';
+            delete img.dataset.retryCount;
+            return;
+        }
+        
+        img.dataset.retryCount = retryCount + 1;
+        
+        // 延迟重试，给服务器更多时间生成图片
+        const delay = (retryCount + 1) * 2000; // 2秒, 4秒, 6秒
+        console.log(`将在 ${delay}ms 后重试 (第${retryCount + 1}次)`);
+        
+        setTimeout(() => {
+            const newTimestamp = Date.now();
+            let retryUrl = originalUrl;
+            
+            // 如果是外部URL，使用代理
+            if (originalUrl.startsWith('http://') || originalUrl.startsWith('https://')) {
+                retryUrl = `/api/proxy_image?url=${encodeURIComponent(originalUrl)}`;
+            }
+            
+            // 添加时间戳
+            retryUrl = retryUrl.includes('?') 
+                ? `${retryUrl}&_t=${newTimestamp}` 
+                : `${retryUrl}?_t=${newTimestamp}`;
+            
+            img.src = retryUrl;
+        }, delay);
+    };
+
+    window.handleImageLoaded = function(img) {
+        console.log('图片加载成功');
+        delete img.dataset.retryCount;
+    };
 
     // 初始化
     renderState();
