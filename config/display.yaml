@@ -1,0 +1,11 @@
+# display.yaml - 显示配置
+
+# 镜像设置（用于透镜投影效果）
+mirror:
+  # 是否启用左右镜像（水平翻转）
+  # true: 启用镜像（适用于透镜投影）
+  # false: 不启用镜像（正常显示）
+  horizontal_flip: true
+  
+  # 是否启用上下镜像（垂直翻转）- 通常不需要
+  vertical_flip: false

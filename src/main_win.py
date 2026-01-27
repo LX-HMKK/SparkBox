@@ -114,7 +114,8 @@ class SparkBoxApp:
         # 初始化Web管理器
         templates_folder = str(TASKS_DIR / "ui_output" / "templates")
         static_folder = str(TASKS_DIR / "ui_output" / "static")
-        self.web_manager = WebManager(templates_folder, static_folder)
+        config_dir = str(self.config_dir)  # 传递配置目录
+        self.web_manager = WebManager(templates_folder, static_folder, config_dir=config_dir)
         
         # 设置管理器间的引用关系
         self.web_manager.set_managers(

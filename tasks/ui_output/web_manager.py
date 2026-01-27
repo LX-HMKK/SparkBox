@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import webbrowser
 import urllib.request
+import yaml
 from datetime import datetime
 from queue import Queue
 from flask import Flask, render_template, Response, jsonify, request, send_file
@@ -18,7 +19,7 @@ from io import BytesIO
 
 
 class WebManager:
-    def __init__(self, templates_folder, static_folder, host='0.0.0.0', port=5000):
+    def __init__(self, templates_folder, static_folder, host='0.0.0.0', port=5000, config_dir=None):
         """
         初始化Web管理器
         
@@ -27,6 +28,7 @@ class WebManager:
             static_folder: 静态文件夹路径
             host: 服务器主机
             port: 服务器端口
+            config_dir: 配置文件目录路径
         """
         self.host = host
         self.port = port
@@ -50,8 +52,59 @@ class WebManager:
         self.voice_handler = None
         self.app_instance = None
         
+        # 加载显示配置
+        self.display_config = self._load_display_config(config_dir)
+        
         # Setup routes
         self._setup_routes()
+    
+    def _load_display_config(self, config_dir):
+        """加载显示配置"""
+        default_config = {
+            "mirror": {
+                "horizontal_flip": False,
+                "vertical_flip": False
+            }
+        }
+        
+        if not config_dir:
+            print("[WebManager] 未指定配置目录，使用默认显示配置")
+            return default_config
+        
+        config_path = os.path.join(config_dir, "display.yaml")
+        
+        if not os.path.exists(config_path):
+            print(f"[WebManager] 显示配置文件不存在: {config_path}，使用默认配置")
+            return default_config
+        
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+                print(f"[WebManager] 加载显示配置: 水平镜像={config.get('mirror', {}).get('horizontal_flip', False)}, "
+                      f"垂直镜像={config.get('mirror', {}).get('vertical_flip', False)}")
+                return config
+        except Exception as e:
+            print(f"[WebManager] 加载显示配置失败: {e}，使用默认配置")
+            return default_config
+    
+    def _apply_mirror(self, frame):
+        """应用镜像效果"""
+        if frame is None:
+            return None
+        
+        mirror_config = self.display_config.get("mirror", {})
+        h_flip = mirror_config.get("horizontal_flip", False)
+        v_flip = mirror_config.get("vertical_flip", False)
+        
+        # 水平翻转（左右镜像）
+        if h_flip:
+            frame = cv2.flip(frame, 1)
+        
+        # 垂直翻转（上下镜像）
+        if v_flip:
+            frame = cv2.flip(frame, 0)
+        
+        return frame
     
     def set_managers(self, camera_manager, ai_manager, voice_handler=None, app_instance=None):
         """设置外部管理器引用"""
@@ -102,6 +155,11 @@ class WebManager:
             if self.ai_manager and self.ai_manager.last_complete_result:
                 return jsonify(self.ai_manager.last_complete_result)
             return jsonify({"error": "No results available"})
+        
+        @self.app.route('/api/display_config')
+        def api_display_config():
+            """返回显示配置（镜像设置等）"""
+            return jsonify(self.display_config)
 
         @self.app.route('/api/reset', methods=['POST'])
         def api_reset():
@@ -183,7 +241,9 @@ class WebManager:
             print("="*50)
             
             def shutdown():
-                """延迟关闭服务器和程序"""
+                """延        # 应用镜像效果
+                            frame_copy = self._apply_mirror(frame_copy)
+                    迟关闭服务器和程序"""
                 time.sleep(1)  # 等待响应发送完成
                 
                 # 停止主循环
@@ -229,6 +289,8 @@ class WebManager:
                         frame_copy = self.camera_manager.get_latest_processed_frame()
                         if frame_copy is not None:
                             frame_copy = frame_copy.copy()
+                            # 应用镜像效果
+                            frame_copy = self._apply_mirror(frame_copy)
                     
                     if frame_copy is not None:
                         ok, buffer = cv2.imencode('.jpg', frame_copy)

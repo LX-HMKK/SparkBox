@@ -34,6 +34,19 @@
             align-items: center;
             overflow: hidden;
         }
+        
+        /* 镜像效果类 - 由JavaScript动态应用 */
+        body.mirror-horizontal {
+            transform: scaleX(-1);
+        }
+        
+        body.mirror-vertical {
+            transform: scaleY(-1);
+        }
+        
+        body.mirror-both {
+            transform: scale(-1, -1);
+        }
 
         /* 强制继承字体 */
         input,
@@ -841,6 +854,33 @@
 </head>
 
 <body>
+    <!-- 镜像配置加载脚本 -->
+    <script>
+        // 页面加载时立即获取并应用镜像配置
+        (function() {
+            fetch('/api/display_config')
+                .then(response => response.json())
+                .then(config => {
+                    const mirror = config.mirror || {};
+                    const hFlip = mirror.horizontal_flip || false;
+                    const vFlip = mirror.vertical_flip || false;
+                    
+                    console.log('[Mirror] 加载镜像配置:', { hFlip, vFlip });
+                    
+                    // 应用镜像CSS类
+                    if (hFlip && vFlip) {
+                        document.body.classList.add('mirror-both');
+                    } else if (hFlip) {
+                        document.body.classList.add('mirror-horizontal');
+                    } else if (vFlip) {
+                        document.body.classList.add('mirror-vertical');
+                    }
+                })
+                .catch(err => {
+                    console.error('[Mirror] 加载镜像配置失败:', err);
+                });
+        })();
+    </script>
 
     <div class="bg-grid"></div>
     <div class="scan-line"></div>
