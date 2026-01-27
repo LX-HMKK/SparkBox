@@ -4,8 +4,9 @@
 ### AI驱动的创意工程助手
 
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
-![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+<!-- ![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg) -->
+![Windows Build](https://img.shields.io/badge/Windows_x64-passing-brightgreen?logo=windows)
+![Ubuntu Build](https://img.shields.io/badge/Ubuntu_Arm64-passing-brightgreen?logo=ubuntu)
 
 <br/>
 
@@ -29,10 +30,10 @@ SparkBox 专为中小学生设计，是一个集成了 **计算机视觉**、**�
 | :--- | :--- |
 | 🎨 **智能草图识别** | 自动识别手绘草图、符号和潦草文字，理解创意原点。 |
 | 🛠️ **工程方案生成** | 基于识别内容，生成包含材料、步骤和原理的完整制作方案。 |
-| 🖼️ **可视化预览** | 利用生成式AI，创造出令人惊艳的作品预览图，预见未来成果。 |
-| 🗣️ **多模态交互** | 支持语音指令和实时对话，随时调整和优化方案，如良师在侧。 |
+| 🖼️ **真实感可视化** | 集成 NanoBanana 生成式AI (RealVisXL)，生成照片级逼真的作品预览图。 |
+| 🗣️ **上下文对话** | 支持多轮对话记忆，可针对当前生成的方案进行深入探讨和优化。 |
 | 💻 **双平台支持** | 提供 Windows 调试版和 ARM64 部署版，兼顾开发便利与实际应用。 |
-
+| 📱 **移动端配套** | 配套移动App，提供历史记录回顾和方案下载。 |
 ---
 
 ## 🏗️ 系统架构
@@ -210,8 +211,10 @@ SparkBox/
 │   │   └── detect.py         # 目标检测
 │   ├── talk/           # AI 交互核心
 │   │   ├── ai_manager.py     # AI 流程总管
-│   │   ├── voice2text.py     # 语音识别
-│   │   └── ...
+│   │   ├── vision_module.py  # 视觉分析
+│   │   ├── mentor_module.py  # 方案生成
+│   │   ├── image_module.py   # 图像生成
+│   │   └── voice2text.py     # 语音识别
 │   └── ui_output/      # Web 前端界面
 │       ├── web_manager.py    # Web 服务管理
 │       ├── templates/        # HTML 模板
