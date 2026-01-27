@@ -1,27 +1,37 @@
-# ✨ SparkBox - AI驱动的创意工程助手
+<div align="center">
+
+# ✨ SparkBox
+### AI驱动的创意工程助手
 
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
-<!-- ![License](https://img.shields.io/badge/license-MIT-green.svg) -->
 ![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 
-**SparkBox** 是一个基于分布式管理器架构的智能硬件项目，它能将学生天马行空的**手绘草图**转化为结构完整的**工程解决方案**，并通过多模态AI交互系统提供实时指导，点燃从创意到现实的火花。
+<br/>
+
+**SparkBox** 是一个基于分布式管理器架构的智能硬件项目<br/>
+它能将学生天马行空的 **手绘草图** 转化为结构完整的 **工程解决方案**<br/>
+并通过多模态AI交互系统提供实时指导，点燃从创意到现实的火花。
+
+[功能特性](#-核心功能) • [系统架构](#-系统架构) • [快速开始](#-快速开始) • [开发计划](#-开发路线图)
+
+</div>
 
 ---
 
 ## 🚀 项目概述
 
-SparkBox 专为中小学生设计，是一个集成了计算机视觉、自然语言处理和生成式AI技术的创客教育平台，旨在将孩子们的创意草图无缝转化为可动手实践的工程项目。
+SparkBox 专为中小学生设计，是一个集成了 **计算机视觉**、**自然语言处理** 和 **生成式AI** 技术的创客教育平台。旨在消除创意与实现之间的技术鸿沟，将孩子们的创意草图无缝转化为可动手实践的工程项目。
 
-### 核心功能
+### 🌟 核心功能
 
 | 功能 | 描述 |
 | :--- | :--- |
-| 🎨 **智能草图识别** | 自动识别手绘草图、符号和潦草文字。 |
+| 🎨 **智能草图识别** | 自动识别手绘草图、符号和潦草文字，理解创意原点。 |
 | 🛠️ **工程方案生成** | 基于识别内容，生成包含材料、步骤和原理的完整制作方案。 |
-| 🖼️ **可视化预览** | 利用生成式AI，创造出令人惊艳的作品预览图。 |
-| 🗣️ **多模态交互** | 支持语音指令和实时对话，随时调整和优化方案。 |
-| 💻 **双平台支持** | 提供Windows调试版和ARM64部署版，兼顾开发与实际应用。 |
+| 🖼️ **可视化预览** | 利用生成式AI，创造出令人惊艳的作品预览图，预见未来成果。 |
+| 🗣️ **多模态交互** | 支持语音指令和实时对话，随时调整和优化方案，如良师在侧。 |
+| 💻 **双平台支持** | 提供 Windows 调试版和 ARM64 部署版，兼顾开发便利与实际应用。 |
 
 ---
 
@@ -57,7 +67,7 @@ graph TD
     A --> B --> C
 ```
 
-### 管理器职责
+### 🧩 管理器职责
 
 | 管理器 | 主要职责 |
 | :--- | :--- |
@@ -86,8 +96,6 @@ graph LR
     end
 ```
 
-### 模型配置
-
 | AI任务 | 模型 | 核心职责 |
 | :--- | :--- | :--- |
 | **视觉分析** | Gemini 2.5 Pro | 图像理解、手写文字识别。 |
@@ -100,7 +108,7 @@ graph LR
 ## ⚙️ 平台特性
 
 <details>
-<summary><strong>Windows调试版本 (main_win.py)</strong></summary>
+<summary><strong>💻 Windows调试版本 (main_win.py)</strong></summary>
 
 - **⌨️ 键盘控制**: 使用 `空格键` 触发识别，`ESC` 键退出程序。
 - **🐛 调试友好**: 提供完整的错误日志和调试信息，方便快速定位问题。
@@ -108,7 +116,7 @@ graph LR
 </details>
 
 <details>
-<summary><strong>ARM64部署版本 (main_arm.py)</strong></summary>
+<summary><strong>🤖 ARM64部署版本 (main_arm.py)</strong></summary>
 
 - **🕹️ GPIO硬件控制**: 通过物理按键进行输入，使用LED灯指示系统状态。
 - **🔒 Chromium Kiosk模式**: 强制全屏显示，禁用退出选项，提供沉浸式体验。
@@ -128,12 +136,24 @@ subprocess.Popen([
 ```
 </details>
 
+<details>
+<summary><strong>📱 移动端配套服务 (server.py)</strong></summary>
+
+- **📡 本地记忆转发**: 运行轻量级FastAPI服务，将本地生成的AI日志和方案文件转发至局域网。
+- **📱 手机App对接**: 专为Flutter开发的手机配套App设计，支持从移动端回顾历史创意和方案。
+- **📂 静态资源挂载**: 自动挂载日志目录，允许外部设备直接访问生成的JSON数据和图片资源。
+
+#### 核心接口说明
+- `GET /api/list_files`: 获取所有历史对话/方案列表（按时间倒序）。
+- `GET /logs/{filename}`: 访问具体的方案内容或生成的图片。
+</details>
+
 ---
 
 ## 🛠️ 安装配置
 
 <details>
-<summary><strong>点击展开安装指南</strong></summary>
+<summary><strong>📋 点击展开安装指南</strong></summary>
 
 ### 系统要求
 - Python 3.8+
@@ -171,10 +191,43 @@ pip install Hobot.GPIO
 
 ---
 
+## 📂 项目结构
+
+<details>
+<summary><strong>📁 点击查看目录树</strong></summary>
+
+```text
+SparkBox/
+├── asset/              # 资源文件 (图片、模型、配置示例)
+├── config/             # 配置文件 (YAML)
+├── src/                # 应用程序入口
+│   ├── main_arm.py     # ARM/Linux 部署入口 (Kiosk模式)
+│   ├── main_win.py     # Windows 调试入口
+│   └── server.py       # 移动端配套服务 (FastAPI)
+├── tasks/              # 核心业务逻辑模块
+│   ├── img_input/      # 图像输入与处理
+│   │   ├── camera_manager.py # 摄像头管理
+│   │   └── detect.py         # 目标检测
+│   ├── talk/           # AI 交互核心
+│   │   ├── ai_manager.py     # AI 流程总管
+│   │   ├── voice2text.py     # 语音识别
+│   │   └── ...
+│   └── ui_output/      # Web 前端界面
+│       ├── web_manager.py    # Web 服务管理
+│       ├── templates/        # HTML 模板
+│       └── static/           # 静态资源 (JS/CSS)
+├── tools/              # 实用工具脚本
+└── README.md           # 项目文档
+```
+
+</details>
+
+---
+
 ## 🚀 快速开始
 
 <details>
-<summary><strong>点击展开启动说明</strong></summary>
+<summary><strong>▶️ 点击展开启动说明</strong></summary>
 
 ### Windows调试模式
 ```bash
@@ -189,7 +242,7 @@ python src/main_arm.py
 ```
 
 ### 访问Web界面
-启动后，系统将自动打开浏览器并访问：http://localhost:5000
+启动后，系统将自动打开浏览器并访问：`http://localhost:5000`
 </details>
 
 ---
@@ -208,7 +261,7 @@ python src/main_arm.py
 ## ✨ 技术亮点
 
 <details>
-<summary><strong>视觉识别优化</strong></summary>
+<summary><strong>👁️ 视觉识别优化</strong></summary>
 
 - **潦草文字识别**: 针对学生手写体进行深度优化，识别率更高。
 - **图形符号理解**: 能够准确识别抽象图形、流程图和电路符号。
@@ -216,7 +269,7 @@ python src/main_arm.py
 </details>
 
 <details>
-<summary><strong>工程教育适配</strong></summary>
+<summary><strong>🎓 工程教育适配</strong></summary>
 
 - **年龄段适配**: 根据中小学生的认知水平，动态调整输出内容的深度和广度。
 - **STEM知识整合**: 在方案中巧妙融入科学、技术、工程和数学知识点。
@@ -224,7 +277,7 @@ python src/main_arm.py
 </details>
 
 <details>
-<summary><strong>实时性能优化</strong></summary>
+<summary><strong>⚡ 实时性能优化</strong></summary>
 
 - **异步处理**: 采用多线程处理耗时任务，避免界面卡顿。
 - **流式传输 (SSE)**: 实时向前端推送处理状态和结果，提供即时反馈。
@@ -236,15 +289,23 @@ python src/main_arm.py
 ## 🗺️ 开发路线图
 
 <details>
-<summary><strong>近期优化目标</strong></summary>
+<summary><strong>✅ 已实现功能</strong></summary>
 
-- [ ] **UI模式自适应**: 根据运行平台自动调整界面布局和交互方式。
-- [ ] **GPIO响应优化**: 降低按键复位延迟，提升硬件交互的灵敏度和体验。
-- [ ] **代码架构统一**: 统一 `main_win.py` 和 `main_arm.py` 的代码框架，提高可维护性。
+- [x] **代码架构统一**: 完成 `main_win.py` 和 `main_arm.py` 的架构重构，统一使用管理器模式。
+- [x] **Web交互界面**: 基于Flask和SSE实现的实时交互Web UI，支持状态推送和视频流。
+- [x] **移动端数据服务**: 实现 `server.py` 本地记忆转发服务，支持Flutter App接入访问。
+- [x] **视觉/语音/生成全链路**: 打通从摄像头输入、语音交互到AI方案生成的完整闭环。
 </details>
 
 <details>
-<summary><strong>硬件升级计划</strong></summary>
+<summary><strong>📅 近期优化目标</strong></summary>
+
+- [ ] **UI模式自适应**: 根据运行平台自动调整界面布局和交互方式。
+- [ ] **GPIO响应优化**: 降低按键复位延迟，提升硬件交互的灵敏度和体验。
+</details>
+
+<details>
+<summary><strong>📷 硬件升级计划</strong></summary>
 
 - [ ] **高分辨率相机**: 适配更高像素的专业摄像头，提升输入精度。
 - [ ] **工业级CMOS传感器**: 采用工业级CMOS相机，增强在复杂光照下的图像质量。
@@ -252,7 +313,7 @@ python src/main_arm.py
 </details>
 
 <details>
-<summary><strong>未来功能扩展</strong></summary>
+<summary><strong>🔮 未来功能扩展</strong></summary>
 
 - [ ] **多语言支持**: 扩展支持更多语言的语音识别和自然语言处理。
 - [ ] **云端同步**: 实现项目数据的云端存储和跨设备同步。
@@ -261,31 +322,11 @@ python src/main_arm.py
 
 ---
 
-<!-- ## 🤝 贡献指南
-
-欢迎通过提交Issue和Pull Request来为SparkBox添砖加瓦。请遵循以下规范：
-
-1.  **代码风格**: 遵循PEP 8标准。
-2.  **质量检查**: 提交前请运行 `black` 和 `flake8` 进行代码格式化和质量检查。
-3.  **文档与测试**: 更新相关的文档和测试用例。
-4.  **架构原则**: 遵循项目现有的架构设计，保持代码的一致性。 -->
-
 ### Git提交规范
 
 我们遵循 [Angular提交约定](https://github.com/angular/angular/blob/main/CONTRIBUTING.md#commit)，这有助于保持提交历史的清晰和可读性。
 
-每次提交都应包含 **header**, **body** 和 **footer**。
-
-```text
-<type>(<scope>): <subject>
-<BLANK LINE>
-<body>
-<BLANK LINE>
-<footer>
-```
-
-**类型 (Type)** 必须是以下之一:
-
+`type` 必须是以下之一:
 - **feat**: 新功能
 - **fix**: Bug修复
 - **docs**: 文档变更
@@ -297,12 +338,6 @@ python src/main_arm.py
 
 ---
 
-<!-- ## 📜 许可证
-
-本项目采用 **MIT许可证**，详情请见 `LICENSE` 文件。
-
---- -->
-
 ## 📞 技术支持
 
 如有任何技术问题或建议，请通过以下方式联系我们：
@@ -312,4 +347,6 @@ python src/main_arm.py
 
 ---
 
-**SparkBox** - 让每个创意都闪闪发光 ✨
+<div align="center">
+<b>SparkBox</b> - 让每个创意都闪闪发光 ✨
+</div>
